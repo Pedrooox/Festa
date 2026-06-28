@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — FestasVIP</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#1e1b4b,#312e81 50%,#1e1b4b);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.box{background:#fff;border-radius:20px;padding:2.4rem 2rem;width:100%;max-width:370px;box-shadow:0 25px 60px rgba(0,0,0,.4)}
+.hd{text-align:center;margin-bottom:1.8rem}
+.hd .icon{font-size:2.3rem;display:block;margin-bottom:.7rem}
+.hd h1{font-family:'Playfair Display',serif;font-size:1.55rem;color:#1e1b4b;margin-bottom:.25rem}
+.hd p{font-size:.82rem;color:#64748b}
+.fg{margin-bottom:.9rem}
+label{display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:.3rem}
+input{width:100%;padding:.72rem .95rem;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'Inter',sans-serif;font-size:.93rem;outline:none;transition:border .15s}
+input:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.btn{width:100%;padding:.82rem;background:linear-gradient(135deg,#4f46e5,#3730a3);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:.93rem;font-weight:700;cursor:pointer;margin-top:.5rem;transition:opacity .15s}
+.btn:hover{opacity:.9}
+.flash{padding:.65rem .9rem;border-radius:7px;font-size:.83rem;font-weight:500;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;margin-bottom:.9rem}
+.back{text-align:center;margin-top:1.1rem}
+.back a{font-size:.8rem;color:#4f46e5;text-decoration:none}
+.back a:hover{text-decoration:underline}
+.hint{background:#f1f5f9;border-radius:7px;padding:.65rem .85rem;margin-top:1.1rem;font-size:.76rem;color:#64748b}
+.hint strong{color:#374151}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="hd"><span class="icon">🔐</span><h1>Painel Admin</h1><p>Acesso restrito ao administrador</p></div>
+  {% with msgs = get_flashed_messages(with_categories=True) %}
+    {% for _,msg in msgs %}<div class="flash">⚠️ {{msg}}</div>{% endfor %}
+  {% endwith %}
+  <form method="POST">
+    <div class="fg"><label>Usuário</label><input type="text" name="usuario" placeholder="admin" required autofocus></div>
+    <div class="fg"><label>Senha</label><input type="password" name="senha" placeholder="••••••••" required></div>
+    <button type="submit" class="btn">🔑 Entrar no painel</button>
+  </form>
+  <div class="hint"><strong>Padrão:</strong> admin / admin123 — altere em <code>controllers/__init__.py</code></div>
+  <div class="back"><a href="{{ url_for('cliente.index') }}">← Voltar ao site</a></div>
+</div>
+</body>
+</html>

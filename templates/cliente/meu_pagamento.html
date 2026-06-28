@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% block title %}Pagamento — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.pag-layout{display:grid;grid-template-columns:1fr 320px;gap:1.2rem;align-items:start}
+
+/* Cabeçalho do agendamento */
+.ag-banner{
+    background:linear-gradient(135deg,#f0ebff,#fdf2f8);
+    border:1.5px solid rgba(114,9,183,.12);
+    border-radius:14px;padding:1.2rem 1.4rem;
+    display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;
+}
+.ag-banner-emoji{font-size:2.6rem}
+.ag-banner-info{flex:1}
+.ag-banner-nome{font-weight:800;font-size:1.05rem;color:#1a1a2e;margin-bottom:.2rem}
+.ag-banner-data{font-size:.88rem;color:#6b7280}
+
+/* Prazo */
+.prazo-box{
+    border-radius:11px;padding:.9rem 1.1rem;
+    display:flex;align-items:center;gap:.8rem;
+    margin-bottom:1.1rem;
+    font-size:.87rem;font-weight:500;
+}
+.prazo-box.ok{background:#d1fae5;border:1.5px solid #6ee7b7;color:#065f46}
+.prazo-box.vencido{background:#fee2e2;border:1.5px solid #fca5a5;color:#991b1b}
+.prazo-box .pb-icon{font-size:1.5rem;flex-shrink:0}
+
+/* Status pagamento */
+.pag-status-card{
+    border-radius:12px;padding:1.2rem 1.3rem;
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:1.1rem;flex-wrap:wrap;gap:.8rem;
+}
+.pag-status-card.pago{background:#d1fae5;border:1.5px solid #6ee7b7}
+.pag-status-card.pendente{background:#fef3c7;border:1.5px solid #fcd34d}
+.pag-status-card.reembolsado{background:#dbeafe;border:1.5px solid #93c5fd}
+.psc-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.2rem}
+.psc-val{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900}
+.pago .psc-label{color:#047857}.pago .psc-val{color:#065f46}
+.pendente .psc-label{color:#92400e}.pendente .psc-val{color:#92400e}
+.reembolsado .psc-label{color:#1d4ed8}.reembolsado .psc-val{color:#1d4ed8}
+
+/* Tabela de detalhes */
+.detalhe-table{width:100%;border-collapse:collapse;font-size:.88rem;margin-bottom:.8rem}
+.detalhe-table td{padding:.55rem 0;border-bottom:1px solid #f1f5f9;vertical-align:top}
+.detalhe-table td:first-child{color:#6b7280;width:45%}
+.detalhe-table td:last-child{font-weight:600;color:#1a1a2e;text-align:right}
+.detalhe-table tr:last-child td{border-bottom:none}
+
+/* Entrega */
+.entrega-card{
+    background:#eff6ff;border:1.5px solid #bfdbfe;
+    border-radius:11px;padding:1rem 1.2rem;margin-bottom:1rem;
+}
+.entrega-card h4{color:#1d4ed8;font-size:.88rem;font-weight:700;margin-bottom:.6rem}
+.entrega-item{display:flex;gap:.6rem;font-size:.84rem;margin-bottom:.3rem}
+.entrega-item .ei-lbl{color:#3b82f6;min-width:80px;font-weight:600}
+.entrega-item .ei-val{color:#1e293b}
+
+/* Formas de pagamento */
+.fp-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-bottom:1rem}
+.fp-radio{display:none}
+.fp-lbl{
+    border:2px solid #e5e7f0;border-radius:9px;
+    padding:.7rem .8rem;cursor:pointer;
+    display:flex;align-items:center;gap:.55rem;
+    font-size:.83rem;font-weight:500;color:#374151;
+    transition:all .16s;
+}
+.fp-lbl:hover{border-color:#7209b7;background:#f5f0ff}
+.fp-radio:checked+.fp-lbl{
+    border-color:#f72585;
+    background:linear-gradient(135deg,rgba(247,37,133,.06),rgba(114,9,183,.06));
+    color:#7209b7;font-weight:700;
+}
+.fp-icon{font-size:1.2rem}
+
+/* Resumo lateral */
+.resumo-card{
+    background:linear-gradient(135deg,#f5f0ff,#fdf2f8);
+    border:1.5px solid rgba(114,9,183,.12);border-radius:14px;padding:1.3rem;
+    position:sticky;top:80px;
+}
+.resumo-titulo{font-weight:800;font-size:.92rem;color:#7209b7;margin-bottom:.9rem}
+.resumo-linha{display:flex;justify-content:space-between;font-size:.86rem;margin-bottom:.5rem}
+.resumo-linha .rl-l{color:#6b7280}.resumo-linha .rl-v{font-weight:600;color:#1a1a2e}
+.resumo-sep{border:none;border-top:1px solid rgba(114,9,183,.12);margin:.7rem 0}
+.resumo-total{display:flex;justify-content:space-between;align-items:center}
+.rt-label{font-weight:700;font-size:.9rem;color:#374151}
+.rt-valor{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;color:#7209b7}
+
+.btn-pagar{
+    width:100%;padding:.9rem;
+    background:linear-gradient(135deg,#f72585,#7209b7);color:#fff;
+    border:none;border-radius:10px;font-family:'Inter',sans-serif;
+    font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.8rem;
+    transition:all .2s;box-shadow:0 4px 14px rgba(247,37,133,.28);
+}
+.btn-pagar:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(247,37,133,.38)}
+.btn-pagar:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+@media(max-width:760px){.pag-layout{grid-template-columns:1fr}.resumo-card{position:static}.fp-grid{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+{% block content %}
+
+{% set tipo_emoji = {'pix':'⚡','debito':'💳','credito':'💳','dinheiro':'💵','ted':'🏦','outro':'💰'} %}
+
+<div class="mb-4 flex gap-2 items-center">
+    <a href="{{ url_for('cliente.meus_pagamentos') }}" class="btn btn-secondary btn-sm">← Pagamentos</a>
+    <span class="text-muted text-sm">Agendamento #{{ ag.id }}</span>
+</div>
+
+<!-- Banner do agendamento -->
+<div class="ag-banner">
+    <span class="ag-banner-emoji">{{ tema.emoji if tema else '🎉' }}</span>
+    <div class="ag-banner-info">
+        <div class="ag-banner-nome">{{ ag.tema_nome }}</div>
+        <div class="ag-banner-data">📅 {{ ag.data_evento | replace('-','/') }} · {{ ag.entrega_retirada }}</div>
+    </div>
+    <span class="badge badge-{{ ag.status }}">{{ ag.status }}</span>
+</div>
+
+<div class="pag-layout">
+    <!-- Coluna principal -->
+    <div>
+
+        <!-- Status atual do pagamento -->
+        {% if pag %}
+        <div class="pag-status-card {{ pag.status | lower }}">
+            <div>
+                <div class="psc-label">Status do pagamento</div>
+                <div class="psc-val">{{ pag.status }}</div>
+                {% if pag.forma_pagamento %}
+                <div style="font-size:.8rem;margin-top:.2rem;opacity:.8">via {{ pag.forma_pagamento }}</div>
+                {% endif %}
+            </div>
+            <span class="badge badge-{{ pag.status }}" style="font-size:.82rem">
+                {{ '✅ Pago' if pag.status == 'Pago' else ('💸 Reembolsado' if pag.status == 'Reembolsado' else '⏳ Aguardando pagamento') }}
+            </span>
+        </div>
+        {% endif %}
+
+        <!-- Prazo de pagamento -->
+        <div class="prazo-box {{ 'ok' if prazo_ok else 'vencido' }}">
+            <span class="pb-icon">{{ '✅' if pag and pag.status == 'Pago' else ('⚠️' if not prazo_ok else '⏰') }}</span>
+            <div>
+                {% if pag and pag.status == 'Pago' %}
+                    <strong>Pagamento realizado com sucesso!</strong>
+                {% elif not prazo_ok %}
+                    <strong>Prazo expirado.</strong> O pagamento devia ser feito até {{ prazo_pag }}.
+                {% else %}
+                    <strong>Pague até {{ prazo_pag }}</strong> ({{ dias_restantes }} dia{{ 's' if dias_restantes != 1 }})
+                    — 2 dias antes da data do evento.
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Detalhes do pagamento -->
+        <div class="card mb-4">
+            <div class="card-title" style="font-weight:700;font-size:.95rem;margin-bottom:.9rem;padding-bottom:.6rem;border-bottom:1px solid #e5e7f0">
+                💳 Detalhes do Pagamento
+            </div>
+            <table class="detalhe-table">
+                <tr><td>ID do pagamento</td><td>#{{ pag.id if pag else '—' }}</td></tr>
+                <tr><td>Valor</td><td>R$ {{ "%.2f" | format(ag.valor_total) | replace(".",",") }}</td></tr>
+                <tr><td>Status</td><td><span class="badge badge-{{ pag.status if pag else 'Pendente' }}">{{ pag.status if pag else 'Pendente' }}</span></td></tr>
+                <tr><td>Forma de pagamento</td><td>{{ pag.forma_pagamento if pag and pag.forma_pagamento else '—' }}</td></tr>
+                {% if pag and pag.valor_reembolso %}
+                <tr><td>Valor do reembolso</td><td>R$ {{ "%.2f" | format(pag.valor_reembolso) | replace(".",",") }}</td></tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Dados de entrega (se houver) -->
+        {% if entrega %}
+        <div class="entrega-card">
+            <h4>🚚 Dados de entrega</h4>
+            <div class="entrega-item">
+                <span class="ei-lbl">ID:</span><span class="ei-val">#{{ entrega.id }}</span>
+            </div>
+            <div class="entrega-item">
+                <span class="ei-lbl">Horário:</span><span class="ei-val">{{ entrega.horario }}</span>
+            </div>
+            <div class="entrega-item">
+                <span class="ei-lbl">Endereço:</span><span class="ei-val">{{ entrega.endereco }}</span>
+            </div>
+            {% if entrega.observacao %}
+            <div class="entrega-item">
+                <span class="ei-lbl">Observação:</span><span class="ei-val">{{ entrega.observacao }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Formulário de pagamento (só se pendente e prazo ok) -->
+        {% if pag and pag.status == 'Pendente' and prazo_ok and ag.status == 'Pendente' %}
+        <div class="card">
+            <div style="font-weight:700;font-size:.95rem;margin-bottom:.9rem;padding-bottom:.6rem;border-bottom:1px solid #e5e7f0">
+                💰 Realizar pagamento
+            </div>
+            <form method="POST" action="{{ url_for('cliente.realizar_pagamento', ag_id=ag.id) }}">
+                <p style="font-size:.83rem;color:#6b7280;margin-bottom:.9rem">Selecione a forma de pagamento desejada:</p>
+                <div class="fp-grid">
+                    {% for fp in fps %}
+                    <div>
+                        <input type="radio" name="forma_pagamento_id" value="{{ fp.id }}"
+                               id="fp{{ fp.id }}" class="fp-radio" required>
+                        <label for="fp{{ fp.id }}" class="fp-lbl">
+                            <span class="fp-icon">{{ tipo_emoji.get(fp.tipo,'💰') }}</span>
+                            {{ fp.nome }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn-pagar">
+                    💳 Confirmar pagamento de R$ {{ "%.2f" | format(ag.valor_total) | replace(".",",") }}
+                </button>
+            </form>
+        </div>
+        {% elif pag and pag.status == 'Pendente' and not prazo_ok %}
+        <div class="card" style="text-align:center;padding:1.8rem">
+            <p style="font-size:2rem;margin-bottom:.6rem">⏰</p>
+            <p style="font-weight:700;color:#991b1b">Prazo de pagamento expirado</p>
+            <p class="text-muted text-sm" style="margin-top:.4rem">
+                O pagamento devia ser realizado até 2 dias antes do evento ({{ prazo_pag }}).
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Resumo lateral -->
+    <div class="resumo-card">
+        <div class="resumo-titulo">📋 Resumo</div>
+        <div class="resumo-linha">
+            <span class="rl-l">Tema</span>
+            <span class="rl-v">{{ ag.tema_nome }}</span>
+        </div>
+        <div class="resumo-linha">
+            <span class="rl-l">Data</span>
+            <span class="rl-v">{{ ag.data_evento | replace('-','/') }}</span>
+        </div>
+        <div class="resumo-linha">
+            <span class="rl-l">Tipo</span>
+            <span class="rl-v"><span class="badge badge-{{ ag.entrega_retirada }}">{{ ag.entrega_retirada }}</span></span>
+        </div>
+        <div class="resumo-linha">
+            <span class="rl-l">Prazo pagamento</span>
+            <span class="rl-v" style="color:{{ '#065f46' if prazo_ok else '#991b1b' }}">{{ prazo_pag }}</span>
+        </div>
+        <hr class="resumo-sep">
+        <div class="resumo-total">
+            <span class="rt-label">Total</span>
+            <span class="rt-valor">R$ {{ "%.2f" | format(ag.valor_total) | replace(".",",") }}</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

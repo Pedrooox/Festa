@@ -1,0 +1,65 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block extra_style %}
+<style>
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.7rem;max-height:400px;overflow-y:auto}
+.cal-item{border:1.5px solid var(--borda);border-radius:9px;padding:.8rem .9rem;background:#fafafa;text-decoration:none;color:inherit;transition:all .14s;display:block}
+.cal-item:hover{border-color:var(--i);background:#eef2ff;transform:translateY(-2px)}
+.cal-item.Pendente{border-left:4px solid #d97706}
+.cal-item.Cancelado{border-left:4px solid #e11d48;opacity:.65}
+.cal-item.Concluído{border-left:4px solid #059669}
+.cal-date{font-weight:700;font-size:.88rem;margin-bottom:.15rem}
+.cal-meta{font-size:.78rem;color:var(--mu)}
+.cal-cli{font-size:.78rem;color:var(--i);font-weight:600;margin-top:.15rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card c-roxo"><div class="stat-label">Total Agendamentos</div><div class="stat-value">{{ stats.agendamentos }}</div></div>
+  <div class="stat-card c-amber"><div class="stat-label">Pendentes</div><div class="stat-value">{{ stats.pendentes }}</div></div>
+  <div class="stat-card c-verde"><div class="stat-label">Concluídos</div><div class="stat-value">{{ stats.concluidos }}</div></div>
+  <div class="stat-card c-rosa"><div class="stat-label">Cancelados</div><div class="stat-value">{{ stats.cancelados }}</div></div>
+  <div class="stat-card"><div class="stat-label">Clientes</div><div class="stat-value">{{ stats.clientes }}</div></div>
+  <div class="stat-card c-rosa"><div class="stat-label">Pag. Pendentes (cancelados)</div><div class="stat-value">{{ stats.reimb_pend }}</div></div>
+</div>
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">🎉 Próximas festas</div>
+    {% if proximas %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Data</th><th>Tema</th><th>Cliente</th><th>Tipo</th></tr></thead>
+        <tbody>
+        {% for ag in proximas %}
+        <tr>
+          <td><a href="{{ url_for('admin.agendamento_detalhe',ag_id=ag.id) }}" style="color:var(--i);font-weight:700;text-decoration:none">{{ ag.data_evento | replace('-','/') }}</a></td>
+          <td class="text-sm">{{ ag.tema_nome }}</td>
+          <td class="text-sm text-muted">{{ ag.cliente_nome }}</td>
+          <td><span class="badge badge-{{ ag.entrega_retirada }}">{{ ag.entrega_retirada }}</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<p class="text-muted" style="padding:1.5rem;text-align:center">📭 Nenhuma festa futura</p>{% endif %}
+    <div class="mt-4"><a href="{{ url_for('admin.agendamentos') }}" class="btn btn-secondary btn-sm">Ver todos →</a></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📆 Agenda geral</div>
+    {% if datas_ag %}
+    <div class="cal-grid">
+      {% for ag in datas_ag %}
+      {% set p = ag.data_evento.split('-') %}
+      <a href="{{ url_for('admin.agendamentos') }}?data={{ ag.data_evento }}" class="cal-item {{ ag.status }}">
+        <div class="cal-date">{{ p[2] }}/{{ p[1] }}/{{ p[0] }}</div>
+        <div class="cal-meta">{{ ag.tema_nome }}</div>
+        <div class="cal-cli">{{ ag.cliente_nome }}</div>
+        <span class="badge badge-{{ ag.status }}" style="margin-top:.3rem">{{ ag.status }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}<p class="text-muted" style="padding:1.5rem;text-align:center">📭 Sem agendamentos</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

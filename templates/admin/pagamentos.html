@@ -1,0 +1,56 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Formas de Pagamento{% endblock %}
+{% block page_title %}Formas de Pagamento{% endblock %}
+{% block extra_style %}<style>.tipo-map{pix:'⚡',debito:'💳',credito:'💳',dinheiro:'💵',ted:'🏦'}</style>{% endblock %}
+{% block content %}
+{% set te = {'pix':'⚡','debito':'💳','credito':'💳','dinheiro':'💵','ted':'🏦'} %}
+<div class="grid-2 mb-6">
+  <div class="card">
+    <div class="card-title">➕ Nova forma de pagamento</div>
+    <form method="POST" action="{{ url_for('admin.pagamento_novo') }}">
+      <div class="form-row">
+        <div class="form-group"><label class="lbl">Nome *</label><input type="text" name="nome" placeholder="Ex: Cartão de Crédito" required></div>
+        <div class="form-group"><label class="lbl">Tipo *</label>
+          <select name="tipo" required><option value="">Selecione...</option><option value="pix">PIX</option><option value="debito">Débito</option><option value="credito">Crédito</option><option value="dinheiro">Dinheiro</option><option value="ted">TED/DOC</option><option value="outro">Outro</option></select>
+        </div>
+        <div class="form-group"><label class="lbl">Descrição</label><input type="text" name="descricao" placeholder="Detalhe opcional"></div>
+        <div class="form-group"><label class="lbl">Máx. parcelas</label><input type="number" name="parcelas_max" value="1" min="1" max="48"></div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="margin-top:.7rem;width:100%">💳 Cadastrar</button>
+    </form>
+  </div>
+  <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
+    <div class="card-title">💡 Como funciona</div>
+    <div class="text-muted text-sm" style="line-height:1.7">As formas cadastradas aqui ficam disponíveis ao processar reembolsos e atualizar pagamentos no detalhe de cada agendamento.</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title">💳 Formas cadastradas</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nome</th><th>Tipo</th><th>Descrição</th><th>Parcelas</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>
+      {% for fp in fps %}
+      <tr>
+        <td class="font-bold text-sm">{{ te.get(fp.tipo,'💰') }} {{ fp.nome }}</td>
+        <td><span class="badge badge-{{ 'ativo' if fp.ativo else 'inativo' }}">{{ fp.tipo }}</span></td>
+        <td class="text-muted text-sm">{{ fp.descricao or '—' }}</td>
+        <td class="text-sm">{{ 'até '+fp.parcelas_max|string+'x' if fp.parcelas_max > 1 else 'à vista' }}</td>
+        <td><span class="badge {{ 'badge-ativo' if fp.ativo else 'badge-inativo' }}">{{ 'Ativo' if fp.ativo else 'Inativo' }}</span></td>
+        <td>
+          <div class="flex gap-2">
+            <form method="POST" action="{{ url_for('admin.pagamento_toggle',fp_id=fp.id) }}" style="display:inline">
+              <button class="btn btn-xs {{ 'btn-secondary' if fp.ativo else 'btn-success' }}">{{ '🔇 Desativar' if fp.ativo else '✅ Ativar' }}</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.pagamento_excluir',fp_id=fp.id) }}" onsubmit="return confirm('Excluir?')" style="display:inline">
+              <button class="btn btn-danger btn-xs">🗑️</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

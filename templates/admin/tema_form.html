@@ -1,0 +1,199 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Novo Tema{% endblock %}
+{% block page_title %}Cadastrar Novo Tema{% endblock %}
+
+{% block extra_style %}
+<style>
+.form-wrap { max-width: 760px; }
+.section-card {
+    background: #fff;
+    border: 1.5px solid var(--borda);
+    border-radius: 12px;
+    padding: 1.4rem;
+    margin-bottom: 1.1rem;
+}
+.section-header {
+    font-weight: 700;
+    font-size: .92rem;
+    color: var(--tx);
+    margin-bottom: 1rem;
+    padding-bottom: .6rem;
+    border-bottom: 1px solid var(--borda);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+/* Itens dinâmicos */
+.itens-lista { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .7rem; }
+.item-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 36px;
+    gap: .5rem;
+    align-items: center;
+}
+.btn-remove-item {
+    width: 34px; height: 34px; border-radius: 7px;
+    background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+    cursor: pointer; font-size: .9rem; display: flex;
+    align-items: center; justify-content: center;
+    transition: all .14s; flex-shrink: 0;
+}
+.btn-remove-item:hover { background: #ef4444; color: #fff; }
+/* Imagens */
+.img-lista { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .7rem; }
+.img-row { display: grid; grid-template-columns: 1fr 36px; gap: .5rem; align-items: center; }
+.img-preview { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--borda); }
+/* Color + emoji */
+.color-wrap { display: flex; align-items: center; gap: .5rem; }
+.color-wrap input[type=color] { width: 40px; height: 34px; padding: 0; border: 1.5px solid var(--borda); border-radius: 6px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('admin.temas') }}" class="btn btn-secondary btn-sm">← Voltar ao catálogo</a>
+</div>
+
+<div class="form-wrap">
+<form method="POST">
+
+    <!-- Dados gerais -->
+    <div class="section-card">
+        <div class="section-header">📋 Dados gerais</div>
+        <div class="form-row form-row-2">
+            <div class="form-group" style="grid-column:1/-1">
+                <label class="lbl">Nome do tema *</label>
+                <input type="text" name="nome" placeholder="Ex: Jardim Encantado" required
+                       value="{{ tema.nome if tema else '' }}">
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+                <label class="lbl">Descrição</label>
+                <textarea name="descricao" placeholder="Descreva o tema, o ambiente que ele cria e o público ideal...">{{ tema.descricao if tema else '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="lbl">💰 Valor do aluguel (R$)</label>
+                <input type="text" name="valor" placeholder="Ex: 1200,00"
+                       value="{{ tema.valor | string | replace('.',',') if tema else '' }}">
+            </div>
+            <div class="form-group">
+                <label class="lbl">Emoji representativo</label>
+                <input type="text" name="emoji" maxlength="4"
+                       style="font-size:1.4rem;text-align:center"
+                       value="{{ tema.emoji if tema else '🎉' }}">
+            </div>
+            <div class="form-group">
+                <label class="lbl">Cor de destaque</label>
+                <div class="color-wrap">
+                    <input type="color" id="cp" name="cor"
+                           value="{{ tema.cor if tema else '#a29bfe' }}">
+                    <input type="text" id="ch" placeholder="#a29bfe"
+                           value="{{ tema.cor if tema else '#a29bfe' }}"
+                           oninput="document.getElementById('cp').value=this.value">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Itens inclusos -->
+    <div class="section-card">
+        <div class="section-header">📦 Itens inclusos</div>
+        <div class="itens-lista" id="itens-lista">
+            {% if itens %}
+            {% for it in itens %}
+            <div class="item-row">
+                <input type="text" name="item_nome[]" placeholder="Nome do item" value="{{ it.nome }}" required>
+                <input type="number" name="item_qtd[]" placeholder="Qtd" value="{{ it.quantidade }}" min="1" required>
+                <button type="button" class="btn-remove-item" onclick="removerItem(this)">✕</button>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="item-row">
+                <input type="text" name="item_nome[]" placeholder="Nome do item (ex: Mesa decorada)">
+                <input type="number" name="item_qtd[]" placeholder="Qtd" value="1" min="1">
+                <button type="button" class="btn-remove-item" onclick="removerItem(this)">✕</button>
+            </div>
+            {% endif %}
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="adicionarItem()">
+            ➕ Adicionar item
+        </button>
+    </div>
+
+    <!-- Imagens (URLs) -->
+    <div class="section-card">
+        <div class="section-header">🖼️ Imagens (URLs)</div>
+        <p class="text-muted text-sm" style="margin-bottom:.8rem">
+            Informe URLs de imagens do tema. A primeira imagem será a principal exibida no catálogo.
+        </p>
+        <div class="img-lista" id="img-lista">
+            {% if imagens %}
+            {% for img in imagens %}
+            <div class="img-row">
+                <input type="text" name="imagem_url[]" placeholder="https://..." value="{{ img.url }}">
+                <button type="button" class="btn-remove-item" onclick="removerImg(this)">✕</button>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="img-row">
+                <input type="text" name="imagem_url[]" placeholder="https://exemplo.com/imagem.jpg">
+                <button type="button" class="btn-remove-item" onclick="removerImg(this)">✕</button>
+            </div>
+            {% endif %}
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="adicionarImg()">
+            ➕ Adicionar imagem
+        </button>
+    </div>
+
+    <div class="flex gap-3">
+        <button type="submit" class="btn btn-primary" style="flex:1;padding:.85rem">
+            🎨 Cadastrar tema
+        </button>
+        <a href="{{ url_for('admin.temas') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+</form>
+</div>
+
+<script>
+document.getElementById('cp').addEventListener('input',function(){document.getElementById('ch').value=this.value;});
+
+function adicionarItem() {
+    const lista = document.getElementById('itens-lista');
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = '<input type="text" name="item_nome[]" placeholder="Nome do item">' +
+                    '<input type="number" name="item_qtd[]" placeholder="Qtd" value="1" min="1">' +
+                    '<button type="button" class="btn-remove-item" onclick="removerItem(this)">✕</button>';
+    lista.appendChild(row);
+    row.querySelector('input').focus();
+}
+
+function removerItem(btn) {
+    const lista = document.getElementById('itens-lista');
+    if (lista.children.length > 1) {
+        btn.closest('.item-row').remove();
+    } else {
+        btn.closest('.item-row').querySelectorAll('input').forEach(i => i.value = '');
+    }
+}
+
+function adicionarImg() {
+    const lista = document.getElementById('img-lista');
+    const row = document.createElement('div');
+    row.className = 'img-row';
+    row.innerHTML = '<input type="text" name="imagem_url[]" placeholder="https://...">' +
+                    '<button type="button" class="btn-remove-item" onclick="removerImg(this)">✕</button>';
+    lista.appendChild(row);
+    row.querySelector('input').focus();
+}
+
+function removerImg(btn) {
+    const lista = document.getElementById('img-lista');
+    if (lista.children.length > 1) {
+        btn.closest('.img-row').remove();
+    } else {
+        btn.closest('.img-row').querySelector('input').value = '';
+    }
+}
+</script>
+{% endblock %}

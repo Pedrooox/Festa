@@ -1,0 +1,63 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}{{ cliente.nome }}{% endblock %}
+{% block page_title %}Perfil do Cliente{% endblock %}
+{% block extra_style %}
+<style>
+.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#3730a3);display:flex;align-items:center;justify-content:center;font-size:1.7rem;color:#fff;font-weight:900;font-family:'Playfair Display',serif;flex-shrink:0}
+.ph{display:flex;gap:1.1rem;align-items:center;margin-bottom:1.2rem}
+.pn{font-size:1.2rem;font-weight:800}.pe{color:var(--mu);font-size:.88rem;margin-top:.15rem}
+.il{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mu);margin-bottom:.12rem}
+.iv{font-size:.92rem;font-weight:500}
+.ib{margin-bottom:.65rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="mb-4"><a href="{{ url_for('admin.clientes') }}" class="btn btn-secondary btn-sm">← Voltar</a></div>
+<div class="grid-2">
+  <div class="card">
+    <div class="ph">
+      <div class="avatar">{{ cliente.nome[0].upper() }}</div>
+      <div><div class="pn">{{ cliente.nome }}</div><div class="pe">{{ cliente.email }}</div></div>
+    </div>
+    <div class="ib"><div class="il">CPF</div><div class="iv">{{ cliente.cpf }}</div></div>
+    <div class="ib"><div class="il">CEP</div><div class="iv">{{ cliente.cep }}</div></div>
+    <div class="ib"><div class="il">Telefone</div><div class="iv">
+      {% if cliente.telefone %}<a href="https://wa.me/55{{ cliente.telefone | replace('(','') | replace(')','') | replace(' ','') | replace('-','') }}" target="_blank" style="color:#059669">{{ cliente.telefone }} 📱</a>{% else %}—{% endif %}
+    </div></div>
+    <div class="ib"><div class="il">Endereço</div><div class="iv text-sm">{{ cliente.endereco or '—' }}</div></div>
+    <div class="ib"><div class="il">Cliente desde</div><div class="iv text-sm">{{ cliente.criado_em[:10] | replace('-','/') if cliente.criado_em else '—' }}</div></div>
+    <hr style="border:none;border-top:1px solid var(--borda);margin:1rem 0">
+    {% set total = agendamentos|length %}
+    {% set pend = agendamentos | selectattr('status','equalto','Pendente') | list | length %}
+    {% set canc = agendamentos | selectattr('status','equalto','Cancelado') | list | length %}
+    {% set conc = agendamentos | selectattr('status','equalto','Concluído') | list | length %}
+    <div class="flex gap-4">
+      <div style="text-align:center;flex:1"><div style="font-size:1.6rem;font-weight:800;color:var(--i)">{{ total }}</div><div class="text-muted" style="font-size:.72rem;text-transform:uppercase;font-weight:600">Total</div></div>
+      <div style="text-align:center;flex:1"><div style="font-size:1.6rem;font-weight:800;color:#d97706">{{ pend }}</div><div class="text-muted" style="font-size:.72rem;text-transform:uppercase;font-weight:600">Pendentes</div></div>
+      <div style="text-align:center;flex:1"><div style="font-size:1.6rem;font-weight:800;color:#059669">{{ conc }}</div><div class="text-muted" style="font-size:.72rem;text-transform:uppercase;font-weight:600">Concluídos</div></div>
+      <div style="text-align:center;flex:1"><div style="font-size:1.6rem;font-weight:800;color:#e11d48">{{ canc }}</div><div class="text-muted" style="font-size:.72rem;text-transform:uppercase;font-weight:600">Cancelados</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📅 Histórico de Agendamentos</div>
+    {% if agendamentos %}
+    <div style="display:flex;flex-direction:column;gap:.55rem;max-height:420px;overflow-y:auto">
+      {% for ag in agendamentos %}
+      <a href="{{ url_for('admin.agendamento_detalhe',ag_id=ag.id) }}" style="text-decoration:none;color:inherit;display:block;padding:.75rem .9rem;border:1.5px solid var(--borda);border-radius:9px;transition:all .14s" onmouseover="this.style.borderColor='#4f46e5'" onmouseout="this.style.borderColor='#e2e8f0'">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-bold text-sm">{{ ag.data_evento | replace('-','/') }}</div>
+            <div class="text-muted" style="font-size:.78rem;margin-top:.1rem">{{ ag.tema_nome }} · {{ ag.entrega_retirada }}</div>
+            {% if ag.valor_total %}<div style="font-size:.78rem;color:var(--i);font-weight:600">R$ {{ "%.2f" | format(ag.valor_total) | replace('.',',') }}</div>{% endif %}
+          </div>
+          <span class="badge badge-{{ ag.status }}">{{ ag.status }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:2rem;color:var(--mu)">📭 Nenhum agendamento.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Admin{% endblock %} — FestasVIP</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--i:#4f46e5;--i2:#3730a3;--rosa:#e11d48;--verde:#059669;--amber:#d97706;--bg:#f1f5f9;--branco:#fff;--borda:#e2e8f0;--tx:#1e293b;--mu:#64748b;--sw:240px;--r:12px}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display:flex;min-height:100vh}
+.sidebar{width:var(--sw);background:var(--i2);min-height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;z-index:50}
+.sb-logo{padding:1.3rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-logo a{font-family:'Playfair Display',serif;color:#fff;font-size:1.1rem;font-weight:900;text-decoration:none;display:flex;align-items:center;gap:.5rem}
+.sb-adm{background:#e11d48;color:#fff;font-size:.58rem;font-family:'Inter',sans-serif;font-weight:700;letter-spacing:.06em;padding:.12rem .4rem;border-radius:4px;text-transform:uppercase}
+.sb-nav{flex:1;padding:.8rem 0}
+.sb-sec{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.38);padding:.7rem 1.2rem .25rem}
+.sb-link{display:flex;align-items:center;gap:.65rem;padding:.62rem 1.2rem;color:rgba(255,255,255,.72);text-decoration:none;font-size:.86rem;font-weight:500;border-left:3px solid transparent;transition:all .14s}
+.sb-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-link.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:#fff}
+.sb-link .ic{font-size:.95rem;width:20px;text-align:center}
+.sb-badge{margin-left:auto;background:#e11d48;color:#fff;font-size:.68rem;font-weight:700;padding:.08rem .4rem;border-radius:10px;min-width:18px;text-align:center}
+.sb-foot{padding:.9rem 1.2rem;border-top:1px solid rgba(255,255,255,.1)}
+.sb-foot a{display:flex;align-items:center;gap:.55rem;color:rgba(255,255,255,.55);text-decoration:none;font-size:.8rem}
+.sb-foot a:hover{color:#fff}
+.main-wrap{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--branco);border-bottom:1px solid var(--borda);padding:0 2rem;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+.topbar-title{font-weight:700;font-size:.97rem;color:var(--tx)}
+.topbar-user{font-size:.8rem;color:var(--mu)}
+.content{padding:1.7rem 2rem 3rem;flex:1}
+.flash-area{margin-bottom:1.1rem}
+.flash{padding:.75rem 1rem;border-radius:8px;font-size:.86rem;font-weight:500;display:flex;align-items:center;gap:.45rem;margin-bottom:.4rem}
+.flash.sucesso{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.flash.erro{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.card{background:var(--branco);border-radius:var(--r);border:1px solid var(--borda);padding:1.4rem;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.card-title{font-weight:700;font-size:.97rem;color:var(--tx);margin-bottom:1.1rem;padding-bottom:.65rem;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:.45rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:.9rem;margin-bottom:1.4rem}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--r);padding:1.1rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.stat-label{font-size:.72rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem}
+.stat-value{font-size:1.9rem;font-weight:800;color:var(--tx);line-height:1}
+.stat-card.c-roxo .stat-value{color:var(--i)}.stat-card.c-verde .stat-value{color:var(--verde)}.stat-card.c-rosa .stat-value{color:var(--rosa)}.stat-card.c-amber .stat-value{color:var(--amber)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th{background:#f8fafc;font-weight:700;text-align:left;padding:.65rem .9rem;color:var(--mu);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--borda)}
+td{padding:.7rem .9rem;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafc}
+.badge{display:inline-flex;align-items:center;padding:.18rem .6rem;border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.badge-Pendente{background:#fef3c7;color:#92400e}
+.badge-Cancelado,.badge-cancelado{background:#fee2e2;color:#991b1b}
+.badge-Concluído,.badge-concluido{background:#d1fae5;color:#065f46}
+.badge-Pago{background:#d1fae5;color:#065f46}
+.badge-Reembolsado{background:#dbeafe;color:#1d4ed8}
+.badge-Entrega{background:#ede9fe;color:#5b21b6}
+.badge-Retirada{background:#f0fdf4;color:#166534}
+.badge-Livre{background:#d1fae5;color:#065f46}
+.badge-Ocupado{background:#fee2e2;color:#991b1b}
+.badge-ativo{background:#d1fae5;color:#065f46}
+.badge-inativo{background:#f1f5f9;color:#6b7280}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.52rem 1rem;border-radius:7px;font-family:'Inter',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .14s}
+.btn-primary{background:var(--i);color:#fff}.btn-primary:hover{background:var(--i2)}
+.btn-danger{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}.btn-danger:hover{background:var(--rosa);color:#fff;border-color:var(--rosa)}
+.btn-secondary{background:#f1f5f9;color:var(--tx);border:1px solid var(--borda)}.btn-secondary:hover{background:var(--borda)}
+.btn-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}.btn-success:hover{background:var(--verde);color:#fff;border-color:var(--verde)}
+.btn-sm{padding:.38rem .8rem;font-size:.79rem}.btn-xs{padding:.22rem .55rem;font-size:.72rem;border-radius:5px}
+.form-row{display:grid;gap:.75rem}.form-row-2{grid-template-columns:1fr 1fr}.form-row-3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:.28rem}
+label.lbl{font-size:.78rem;font-weight:600;color:#374151}
+input,select,textarea{padding:.58rem .8rem;border:1.5px solid var(--borda);border-radius:7px;font-family:'Inter',sans-serif;font-size:.88rem;background:#fafafa;transition:border .14s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--i);background:#fff}
+textarea{resize:vertical;min-height:75px}
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}
+.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mt-4{margin-top:1rem}
+.text-muted{color:var(--mu);font-size:.83rem}.text-sm{font-size:.84rem}.font-bold{font-weight:700}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.43);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:1.7rem;max-width:460px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:1.05rem;font-weight:700;margin-bottom:.45rem}
+.modal p{color:var(--mu);font-size:.87rem;margin-bottom:1.1rem;line-height:1.6}
+.modal-btns{display:flex;gap:.6rem;justify-content:flex-end}
+@media(max-width:768px){.sidebar{width:54px}.sb-link span,.sb-logo span,.sb-sec,.sb-foot span{display:none}.main-wrap{margin-left:54px}.form-row-2,.form-row-3,.grid-2{grid-template-columns:1fr}.content{padding:1rem}}
+</style>
+{% block extra_style %}{% endblock %}
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sb-logo">
+    <a href="{{ url_for('admin.dashboard') }}">
+      <span>🎉</span>
+      <span>FestasVIP <span class="sb-adm">Admin</span></span>
+    </a>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-sec">Visão geral</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="sb-link {{ 'active' if request.endpoint=='admin.dashboard' }}"><span class="ic">📊</span><span>Dashboard</span></a>
+    <div class="sb-sec">Eventos</div>
+    <a href="{{ url_for('admin.agendamentos') }}" class="sb-link {{ 'active' if 'agendamento' in request.endpoint }}"><span class="ic">📅</span><span>Agendamentos</span></a>
+    <a href="{{ url_for('admin.disponibilidades') }}" class="sb-link {{ 'active' if 'disponibilidade' in request.endpoint }}"><span class="ic">🗓️</span><span>Disponibilidades</span></a>
+    <div class="sb-sec">Configurações</div>
+    <a href="{{ url_for('admin.temas') }}" class="sb-link {{ 'active' if 'tema' in request.endpoint }}"><span class="ic">🎨</span><span>Temas</span></a>
+    <a href="{{ url_for('admin.pagamentos') }}" class="sb-link {{ 'active' if 'pagamento' in request.endpoint }}"><span class="ic">💳</span><span>Pagamentos</span></a>
+    <a href="{{ url_for('admin.clientes') }}" class="sb-link {{ 'active' if 'cliente' in request.endpoint }}"><span class="ic">👥</span><span>Clientes</span></a>
+  </nav>
+  <div class="sb-foot">
+    <a href="{{ url_for('admin.logout') }}"><span>🚪</span><span>Sair do painel</span></a>
+  </div>
+</aside>
+<div class="main-wrap">
+  <div class="topbar">
+    <span class="topbar-title">{% block page_title %}Painel Admin{% endblock %}</span>
+    <span class="topbar-user">👤 Administrador</span>
+  </div>
+  <div class="content">
+    {% with msgs = get_flashed_messages(with_categories=True) %}
+      {% if msgs %}<div class="flash-area">{% for cat,msg in msgs %}<div class="flash {{cat}}">{{ '✅' if cat=='sucesso' else '⚠️' }} {{msg}}</div>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+</body>
+</html>

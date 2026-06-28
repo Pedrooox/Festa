@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Perfil — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.dados-wrap{max-width:540px;margin:0 auto}
+.avatar{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#f72585,#7209b7);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#fff;font-weight:900;font-family:'Playfair Display',serif;margin-bottom:1rem}
+.email-box{background:#f8fafc;border:1.5px solid #e5e7f0;border-radius:9px;padding:.65rem 1rem;font-size:.9rem;color:#6b7280}
+.hint{font-size:.74rem;color:#9ca3af;margin-top:.3rem}
+.section-sep{border:none;border-top:1px solid #e5e7f0;margin:1.3rem 0}
+.campo-obrig::after{content:" *";color:#e11d48}
+</style>
+{% endblock %}
+{% block content %}
+<div class="dados-wrap">
+  <h1>👤 Perfil</h1>
+  <p class="subtitle">Mantenha suas informações sempre atualizadas</p>
+  <div class="card">
+    <div class="avatar">{{ cliente.nome[0].upper() }}</div>
+    <form method="POST">
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="campo-obrig">Nome completo</label>
+          <input type="text" name="nome" value="{{ cliente.nome }}" required>
+        </div>
+        <div class="form-group">
+          <label class="campo-obrig">CEP</label>
+          <input type="text" name="cep" id="cep" value="{{ cliente.cep }}" required maxlength="9">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>E-mail (não pode ser alterado)</label>
+        <div class="email-box">📧 {{ cliente.email }}</div>
+        <p class="hint">O e-mail é seu identificador e não pode ser alterado.</p>
+      </div>
+      <div class="form-group">
+        <label>CPF (não pode ser alterado)</label>
+        <div class="email-box">🪪 {{ cliente.cpf }}</div>
+      </div>
+
+      <hr class="section-sep">
+      <p style="font-size:.8rem;font-weight:600;color:#6b7280;margin-bottom:.8rem">CONTATO <span style="font-weight:400">(opcional)</span></p>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label>Telefone / WhatsApp</label>
+          <input type="tel" name="telefone" id="tel" value="{{ cliente.telefone or '' }}" placeholder="(00) 00000-0000">
+        </div>
+        <div class="form-group">
+          <label>Endereço completo</label>
+          <input type="text" name="endereco" value="{{ cliente.endereco or '' }}" placeholder="Rua, número, bairro...">
+        </div>
+      </div>
+
+      <hr class="section-sep">
+      <p style="font-size:.8rem;font-weight:600;color:#6b7280;margin-bottom:.8rem">ALTERAR SENHA <span style="font-weight:400">(deixe em branco para manter)</span></p>
+      <div class="form-group">
+        <label>Nova senha</label>
+        <input type="password" name="nova_senha" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">✅ Salvar alterações</button>
+    </form>
+    <div style="margin-top:1rem;font-size:.78rem;color:#9ca3af;text-align:center">
+      🎊 Cliente desde {{ cliente.criado_em[:10] | replace('-','/') if cliente.criado_em else '—' }}
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:1rem">
+    <a href="{{ url_for('cliente.menu') }}" class="btn btn-secondary btn-sm">← Voltar ao menu</a>
+  </div>
+</div>
+<script>
+document.getElementById('cep').addEventListener('input',function(e){
+  let v=e.target.value.replace(/\D/g,'').substring(0,8);
+  if(v.length>5)v=v.substring(0,5)+'-'+v.substring(5);
+  e.target.value=v;
+});
+document.getElementById('tel').addEventListener('input',function(e){
+  let v=e.target.value.replace(/\D/g,'').substring(0,11);
+  if(v.length>=7)v='('+v.substring(0,2)+') '+v.substring(2,7)+'-'+v.substring(7);
+  else if(v.length>=3)v='('+v.substring(0,2)+') '+v.substring(2);
+  else if(v.length)v='('+v;
+  e.target.value=v;
+});
+</script>
+{% endblock %}

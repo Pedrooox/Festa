@@ -1,0 +1,40 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Clientes{% endblock %}
+{% block page_title %}Clientes{% endblock %}
+{% block content %}
+<form method="GET" class="flex gap-3 mb-6 items-center" style="flex-wrap:wrap">
+  <input type="text" name="q" value="{{ busca }}" placeholder="🔍 Buscar por nome, email, CPF ou telefone..." style="flex:1;min-width:200px;max-width:420px">
+  <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+  {% if busca %}<a href="{{ url_for('admin.clientes') }}" class="btn btn-secondary btn-sm">Limpar</a>{% endif %}
+</form>
+<div class="card">
+  <div class="card-title flex justify-between items-center" style="flex-wrap:wrap;gap:.5rem">
+    <span>👥 Clientes cadastrados</span>
+    <span class="text-muted text-sm">{{ clientes|length }} resultado(s)</span>
+  </div>
+  {% if clientes %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>CPF</th><th>Telefone</th><th>CEP</th><th>Agendamentos</th><th>Desde</th><th></th></tr></thead>
+      <tbody>
+      {% for c in clientes %}
+      <tr>
+        <td class="text-muted text-sm">{{ c.id }}</td>
+        <td class="font-bold text-sm">{{ c.nome }}</td>
+        <td class="text-sm"><a href="mailto:{{ c.email }}" style="color:var(--i)">{{ c.email }}</a></td>
+        <td class="text-muted text-sm">{{ c.cpf }}</td>
+        <td class="text-muted text-sm">{{ c.telefone or '—' }}</td>
+        <td class="text-muted text-sm">{{ c.cep }}</td>
+        <td><span class="badge {{ 'badge-Pago' if counts.get(c.id,0) > 0 else 'badge-inativo' }}">{{ counts.get(c.id,0) }} festa(s)</span></td>
+        <td class="text-muted text-sm">{{ c.criado_em[:10] | replace('-','/') if c.criado_em else '—' }}</td>
+        <td><a href="{{ url_for('admin.cliente_detalhe',cli_id=c.id) }}" class="btn btn-secondary btn-xs">Ver</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:2.5rem;color:var(--mu)">{% if busca %}🔍 Nenhum resultado para "<strong>{{ busca }}</strong>"{% else %}👥 Nenhum cliente cadastrado{% endif %}</div>
+  {% endif %}
+</div>
+{% endblock %}

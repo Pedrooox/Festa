@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% block title %}Pagamento — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.pag-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.4rem;
+    align-items: start;
+}
+
+/* Resumo do pedido */
+.resumo-card {
+    background: linear-gradient(135deg, #f5f0ff, #fdf2f8);
+    border: 1.5px solid rgba(114,9,183,.15);
+    border-radius: 14px;
+    padding: 1.4rem;
+    position: sticky;
+    top: 80px;
+}
+.resumo-titulo { font-weight: 800; font-size: 1rem; color: #7209b7; margin-bottom: 1rem; }
+.resumo-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .88rem;
+    margin-bottom: .6rem;
+}
+.resumo-linha .rl-label { color: #6b7280; }
+.resumo-linha .rl-val { font-weight: 600; color: #1a1a2e; }
+.resumo-sep { border: none; border-top: 1px solid rgba(114,9,183,.15); margin: .8rem 0; }
+.resumo-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 800;
+}
+.resumo-total .rt-label { color: #374151; font-size: .9rem; }
+.resumo-total .rt-valor {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: #7209b7;
+}
+.tema-mini {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    background: #fff;
+    border-radius: 10px;
+    padding: .8rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(114,9,183,.1);
+}
+.tema-mini-emoji { font-size: 2rem; }
+.tema-mini-nome { font-weight: 700; font-size: .9rem; color: #1a1a2e; }
+.tema-mini-data { font-size: .78rem; color: #6b7280; margin-top: .1rem; }
+
+/* Formas de pagamento */
+.pag-card { background: #fff; border-radius: 14px; border: 1.5px solid #e5e7f0; padding: 1.6rem; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+.step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #f72585, #7209b7);
+    color: #fff; font-weight: 800; font-size: .82rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.step-header { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.2rem; }
+.step-header h2 { font-size: 1.1rem; margin: 0; }
+
+.fp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .6rem;
+    margin-bottom: 1.2rem;
+}
+.fp-opcao { display: none; }
+.fp-label {
+    border: 2px solid #e5e7f0;
+    border-radius: 10px;
+    padding: .8rem .9rem;
+    cursor: pointer;
+    transition: all .17s;
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    font-size: .85rem;
+    font-weight: 500;
+    color: #374151;
+}
+.fp-label:hover { border-color: #7209b7; background: #f5f0ff; }
+.fp-opcao:checked + .fp-label {
+    border-color: #f72585;
+    background: linear-gradient(135deg, rgba(247,37,133,.06), rgba(114,9,183,.06));
+    color: #7209b7;
+    font-weight: 700;
+}
+.fp-icon { font-size: 1.4rem; }
+
+.tipo-icons { font-size: 1.3rem; }
+.pix-info {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 9px;
+    padding: .85rem 1rem;
+    font-size: .84rem;
+    color: #166534;
+    margin-top: .6rem;
+    display: none;
+}
+
+.btn-confirmar {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f72585, #7209b7);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 4px 16px rgba(247,37,133,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    margin-top: 1.2rem;
+}
+.btn-confirmar:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(247,37,133,.42); }
+.seguranca { display: flex; justify-content: center; gap: 1.2rem; margin-top: .7rem; font-size: .74rem; color: #9ca3af; }
+
+{% set tipo_emoji = {'pix': '⚡', 'debito': '💳', 'credito': '💳', 'dinheiro': '💵', 'ted': '🏦', 'outro': '💰'} %}
+
+@media (max-width: 760px) {
+    .pag-layout { grid-template-columns: 1fr; }
+    .resumo-card { position: static; }
+    .fp-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+{% block content %}
+
+{% set tipo_emoji = {'pix': '⚡', 'debito': '💳', 'credito': '💳', 'dinheiro': '💵', 'ted': '🏦', 'outro': '💰'} %}
+
+<div class="mb-4">
+    <h1>💳 Pagamento</h1>
+    <p class="subtitle">Quase lá! Confirme o pagamento para reservar sua festa.</p>
+</div>
+
+<div class="pag-layout">
+
+    <!-- Esquerda: formas de pagamento -->
+    <div>
+        <div class="pag-card">
+            <div class="step-header">
+                <div class="step-num">1</div>
+                <h2>Escolha a forma de pagamento</h2>
+            </div>
+
+            <form method="POST" id="form-pag">
+                <div class="fp-grid">
+                    {% for fp in fps %}
+                    <div>
+                        <input type="radio" name="forma_pagamento_id" value="{{ fp.id }}"
+                               id="fp{{ fp.id }}" class="fp-opcao" required
+                               onchange="selecionarFP('{{ fp.tipo }}', '{{ fp.nome }}')">
+                        <label for="fp{{ fp.id }}" class="fp-label">
+                            <span class="fp-icon">{{ tipo_emoji.get(fp.tipo, '💰') }}</span>
+                            <span>{{ fp.nome }}</span>
+                        </label>
+                    </div>
+                    {% else %}
+                    <!-- Fallback se não houver formas cadastradas -->
+                    <div>
+                        <input type="radio" name="forma_pagamento_id" value="" id="fpPix" class="fp-opcao" required>
+                        <input type="radio" name="forma_nome" value="PIX">
+                        <label for="fpPix" class="fp-label"><span class="fp-icon">⚡</span><span>PIX</span></label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Informação PIX (aparece dinamicamente) -->
+                <div class="pix-info" id="pix-info">
+                    ⚡ <strong>PIX:</strong> Após confirmar, a chave PIX será exibida na tela de confirmação.
+                    O pagamento deve ser realizado em até 30 minutos para garantir a reserva.
+                </div>
+
+                <div class="step-header" style="margin-top:1.4rem;margin-bottom:.8rem">
+                    <div class="step-num">2</div>
+                    <h2>Confirme o pedido</h2>
+                </div>
+
+                <div style="background:#f8fafc;border:1px solid #e5e7f0;border-radius:9px;padding:.9rem 1rem;font-size:.85rem;color:#374151;line-height:1.65">
+                    Ao clicar em <strong>Confirmar pagamento</strong>, você concorda com os termos de locação
+                    e a data selecionada será imediatamente bloqueada para outros clientes.
+                </div>
+
+                <button type="submit" class="btn-confirmar">
+                    🎉 Confirmar pagamento
+                </button>
+
+                <div class="seguranca">
+                    <span>🔒 Pagamento seguro</span>
+                    <span>📅 Data garantida</span>
+                    <span>✅ Confirmação imediata</span>
+                </div>
+            </form>
+        </div>
+
+        <div style="margin-top:.8rem;text-align:center">
+            <a href="{{ url_for('cliente.agendar_tema', tema_id=pedido.tema_id) }}"
+               class="btn btn-secondary btn-sm">← Voltar e alterar data</a>
+        </div>
+    </div>
+
+    <!-- Direita: resumo do pedido -->
+    <div class="resumo-card">
+        <div class="resumo-titulo">📋 Resumo do pedido</div>
+
+        <div class="tema-mini">
+            <span class="tema-mini-emoji">{{ pedido.tema_emoji }}</span>
+            <div>
+                <div class="tema-mini-nome">{{ pedido.tema_nome }}</div>
+                <div class="tema-mini-data">📅 {{ pedido.data_br }}</div>
+            </div>
+        </div>
+
+        <div class="resumo-linha">
+            <span class="rl-label">Aluguel do tema</span>
+            <span class="rl-val">R$ {{ "%.2f" | format(pedido.valor_total) | replace(".", ",") }}</span>
+        </div>
+        <div class="resumo-linha">
+            <span class="rl-label">Tipo</span>
+            <span class="rl-val">{{ pedido.entrega_retirada }}</span>
+        </div>
+        {% if pedido.observacoes %}
+        <div class="resumo-linha" style="align-items:flex-start">
+            <span class="rl-label">Obs.</span>
+            <span class="rl-val" style="text-align:right;max-width:60%;font-size:.82rem">{{ pedido.observacoes }}</span>
+        </div>
+        {% endif %}
+
+        <hr class="resumo-sep">
+        <div class="resumo-total">
+            <span class="rt-label">Total</span>
+            <span class="rt-valor">R$ {{ "%.2f" | format(pedido.valor_total) | replace(".", ",") }}</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function selecionarFP(tipo, nome) {
+    const pixInfo = document.getElementById('pix-info');
+    pixInfo.style.display = tipo === 'pix' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

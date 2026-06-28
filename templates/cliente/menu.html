@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Início — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.welcome{text-align:center;padding:1.8rem 0 1.2rem}
+.welcome .wave{font-size:2.2rem;display:block;margin-bottom:.4rem}
+.welcome h1{font-size:2rem;margin-bottom:.2rem}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-top:1.8rem}
+.mc{background:#fff;border-radius:18px;border:1.5px solid #e5e7f0;padding:1.8rem 1.2rem;text-align:center;text-decoration:none;color:inherit;transition:all .22s;display:block;box-shadow:0 2px 10px rgba(114,9,183,.06)}
+.mc:hover{transform:translateY(-5px);box-shadow:0 10px 28px rgba(114,9,183,.14);border-color:#7209b7}
+.mc .mc-icon{font-size:2.6rem;display:block;margin-bottom:.8rem}
+.mc h3{font-family:'Playfair Display',serif;font-size:1rem;color:#3a0ca3;margin-bottom:.4rem}
+.mc p{font-size:.78rem;color:#6b7280;line-height:1.5}
+.mc.destaque{background:linear-gradient(135deg,#f72585,#7209b7);border-color:transparent;color:#fff}
+.mc.destaque h3{color:#fff}.mc.destaque p{color:rgba(255,255,255,.82)}
+@media(max-width:600px){.menu-grid{grid-template-columns:1fr 1fr}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="welcome">
+  <span class="wave">👋</span>
+  <h1>Olá, {{ session.cliente_nome }}!</h1>
+  <p class="subtitle">O que você gostaria de fazer hoje?</p>
+</div>
+<div class="menu-grid">
+  <a href="{{ url_for('cliente.agendar') }}" class="mc destaque">
+    <span class="mc-icon">🎪</span><h3>Alugar uma festa</h3><p>Explore os temas e reserve a data do seu evento</p>
+  </a>
+  <a href="{{ url_for('cliente.meus_agendamentos') }}" class="mc">
+    <span class="mc-icon">📋</span><h3>Meus agendamentos</h3><p>Acompanhe todas as suas festas</p>
+  </a>
+  <a href="{{ url_for('cliente.meus_pagamentos') }}" class="mc">
+    <span class="mc-icon">💳</span><h3>Pagamentos</h3><p>Pague e acompanhe seus pagamentos</p>
+  </a>
+  <a href="{{ url_for('cliente.perfil') }}" class="mc">
+    <span class="mc-icon">👤</span><h3>Perfil</h3><p>Atualize seus dados e senha</p>
+  </a>
+</div>
+{% endblock %}

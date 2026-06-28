@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Pagamentos — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.page-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.6rem}
+.pag-card{
+    background:#fff;border:1.5px solid #e5e7f0;border-radius:14px;
+    padding:1.1rem 1.3rem;margin-bottom:.8rem;
+    display:grid;grid-template-columns:auto 1fr auto;gap:.8rem 1.1rem;
+    align-items:center;box-shadow:0 2px 8px rgba(0,0,0,.04);
+    transition:box-shadow .18s;text-decoration:none;color:inherit;
+}
+.pag-card:hover{box-shadow:0 6px 20px rgba(114,9,183,.1);border-color:#7209b7}
+.pag-emoji{font-size:2.2rem;width:50px;height:50px;background:#faf8ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pag-body{}
+.pag-titulo{font-weight:700;font-size:.96rem;color:#1a1a2e;margin-bottom:.2rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.pag-meta{font-size:.8rem;color:#6b7280}
+.pag-meta strong{color:#3a0ca3}
+.pag-right{text-align:right;flex-shrink:0}
+.pag-valor{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:800;color:#7209b7;display:block;margin-bottom:.35rem}
+.prazo-tag{font-size:.72rem;font-weight:600;padding:.18rem .55rem;border-radius:6px;display:inline-block}
+.prazo-ok{background:#d1fae5;color:#065f46}
+.prazo-vencido{background:#fee2e2;color:#991b1b}
+.prazo-pago{background:#f1f5f9;color:#6b7280}
+.empty-state{text-align:center;padding:4rem 2rem;background:#fff;border-radius:14px;border:1.5px dashed #e5e7f0}
+/* Filtro tabs */
+.ftabs{display:flex;gap:.4rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.ftab{padding:.42rem .9rem;border-radius:7px;font-size:.81rem;font-weight:600;text-decoration:none;color:#6b7280;border:1.5px solid #e5e7f0;background:#fff;transition:all .14s}
+.ftab:hover{border-color:#7209b7;color:#7209b7}
+.ftab.ativo{background:#7209b7;color:#fff;border-color:#7209b7}
+@media(max-width:600px){.pag-card{grid-template-columns:auto 1fr;}.pag-right{grid-column:2;text-align:left}}
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>💳 Pagamentos</h1>
+        <p class="subtitle" style="margin:0">Gerencie os pagamentos de seus agendamentos</p>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="ftabs">
+    <a href="{{ url_for('cliente.meus_pagamentos') }}" class="ftab {{ 'ativo' if not request.args.get('f') }}">Todos</a>
+    <a href="?f=pendente" class="ftab {{ 'ativo' if request.args.get('f')=='pendente' }}">⏳ Pendentes</a>
+    <a href="?f=pago"     class="ftab {{ 'ativo' if request.args.get('f')=='pago' }}">✅ Pagos</a>
+    <a href="?f=reemb"    class="ftab {{ 'ativo' if request.args.get('f')=='reemb' }}">💸 Reembolsados</a>
+</div>
+
+{% set f = request.args.get('f','') %}
+{% set filtrados = pagamentos %}
+{% if f == 'pendente' %}{% set filtrados = pagamentos | selectattr('pag_status','equalto','Pendente') | list %}
+{% elif f == 'pago' %}{% set filtrados = pagamentos | selectattr('pag_status','equalto','Pago') | list %}
+{% elif f == 'reemb' %}{% set filtrados = pagamentos | selectattr('pag_status','equalto','Reembolsado') | list %}
+{% endif %}
+
+{% if filtrados %}
+{% for p in filtrados %}
+<a href="{{ url_for('cliente.meu_pagamento', ag_id=p.ag_id) }}" class="pag-card">
+    <div class="pag-emoji">🎉</div>
+    <div class="pag-body">
+        <div class="pag-titulo">
+            {{ p.tema_nome }}
+            <span class="badge badge-{{ p.pag_status or 'Pendente' }}">{{ p.pag_status or 'Pendente' }}</span>
+            <span class="badge badge-{{ p.entrega_retirada }}">{{ p.entrega_retirada }}</span>
+        </div>
+        <div class="pag-meta">
+            📅 <strong>{{ p.data_evento | replace('-','/') }}</strong>
+            {% if p.forma_pagamento %} · {{ p.forma_pagamento }}{% endif %}
+            {% if p.pag_id %} · Pag. #{{ p.pag_id }}{% endif %}
+        </div>
+        {% if p.pag_status == 'Pendente' and p.ag_status == 'Pendente' %}
+        <div class="pag-meta" style="margin-top:.2rem">
+            ⏰ Pague até <strong style="color:{{ '#065f46' if p.prazo_ok else '#991b1b' }}">{{ p.prazo_pag }}</strong>
+            {% if p.prazo_ok and p.dias_restantes >= 0 %}({{ p.dias_restantes }} dia{{ 's' if p.dias_restantes != 1 }}){% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="pag-right">
+        <span class="pag-valor">R$ {{ "%.2f" | format(p.valor_total) | replace(".",",") }}</span>
+        {% if p.pag_status == 'Pago' %}
+            <span class="prazo-tag prazo-pago">✅ Pago</span>
+        {% elif p.pag_status == 'Reembolsado' %}
+            <span class="prazo-tag" style="background:#dbeafe;color:#1d4ed8">💸 Reembolsado</span>
+        {% elif p.prazo_ok %}
+            <span class="prazo-tag prazo-ok">⏳ Pagar →</span>
+        {% else %}
+            <span class="prazo-tag prazo-vencido">⏰ Expirado</span>
+        {% endif %}
+    </div>
+</a>
+{% endfor %}
+{% else %}
+<div class="empty-state">
+    <p style="font-size:2.8rem;margin-bottom:.8rem">💳</p>
+    <h2>Nenhum pagamento encontrado</h2>
+    <p style="color:#6b7280;font-size:.9rem;margin:.4rem 0 1.4rem">
+        {% if f %}Nenhum pagamento com esse filtro.{% else %}Você ainda não tem agendamentos.{% endif %}
+    </p>
+    <a href="{{ url_for('cliente.agendar') }}" class="btn btn-primary">🎪 Explorar temas</a>
+</div>
+{% endif %}
+{% endblock %}

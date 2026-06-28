@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Meus Agendamentos — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.page-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.8rem}
+.ag-card{background:#fff;border:1.5px solid #e5e7f0;border-radius:14px;padding:1.2rem 1.3rem;display:flex;gap:1rem;align-items:flex-start;box-shadow:0 2px 8px rgba(114,9,183,.05);transition:box-shadow .18s;margin-bottom:.8rem}
+.ag-card:hover{box-shadow:0 6px 20px rgba(114,9,183,.1)}
+.ag-card.cancelado{opacity:.68}
+.ag-ico{font-size:2.4rem;width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:#faf8ff;border-radius:11px;flex-shrink:0}
+.ag-body{flex:1;min-width:0}
+.ag-titulo{font-weight:700;font-size:.98rem;color:#1a1a2e;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.2rem}
+.ag-meta{font-size:.82rem;color:#6b7280;margin-bottom:.25rem}
+.ag-meta strong{color:#3a0ca3}
+.ag-obs{font-size:.78rem;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty-state{text-align:center;padding:3.5rem 2rem;background:#fff;border-radius:14px;border:1.5px dashed #e5e7f0}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>📋 Meus Agendamentos</h1><p class="subtitle" style="margin:0">Todas as suas festas em um lugar</p></div>
+  <a href="{{ url_for('cliente.agendar') }}" class="btn btn-primary btn-sm">+ Nova festa</a>
+</div>
+
+{% if agendamentos %}
+  {% for ag in agendamentos %}
+  <div class="ag-card {{ ag.status | lower }}">
+    <div class="ag-ico">🎉</div>
+    <div class="ag-body">
+      <div class="ag-titulo">
+        {{ ag.tema_nome }}
+        <span class="badge badge-{{ ag.status }}">{{ ag.status }}</span>
+        <span class="badge badge-{{ ag.entrega_retirada }}">{{ ag.entrega_retirada }}</span>
+      </div>
+      <div class="ag-meta">📅 <strong>{{ ag.data_evento | replace('-','/') }}</strong>
+        {% if ag.valor_total %} · 💰 R$ {{ "%.2f" | format(ag.valor_total) | replace('.',',') }}{% endif %}
+        · Agendado em {{ ag.criado_em[:10] | replace('-','/') }}
+      </div>
+      {% if ag.motivo_cancelamento %}<div class="ag-meta">⚠️ Motivo: {{ ag.motivo_cancelamento }}</div>{% endif %}
+      {% if ag.observacoes %}<div class="ag-obs">✏️ {{ ag.observacoes }}</div>{% endif %}
+    </div>
+    {% if ag.status == 'Pendente' %}
+    <div>
+      <button class="btn btn-danger btn-xs" onclick="abrirModal({{ ag.id }},'{{ ag.tema_nome }}','{{ ag.data_evento }}')">Cancelar</button>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+<div class="empty-state">
+  <p style="font-size:2.8rem;margin-bottom:.8rem">🎈</p>
+  <h2>Nenhum agendamento ainda</h2>
+  <p style="color:#6b7280;font-size:.9rem;margin:.4rem 0 1.4rem">Que tal agendar sua primeira festa temática?</p>
+  <a href="{{ url_for('cliente.agendar') }}" class="btn btn-primary">🎉 Agendar agora</a>
+</div>
+{% endif %}
+
+<!-- Modal cancelamento -->
+<div class="modal-overlay" id="modalCanc">
+  <div class="modal">
+    <h3>⚠️ Cancelar agendamento?</h3>
+    <p id="modalTxt"></p>
+    <div class="form-group">
+      <label>Motivo do cancelamento (opcional)</label>
+      <textarea id="motivoTxt" placeholder="Informe o motivo..." style="min-height:70px"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary btn-sm" onclick="fecharModal()">Manter festa</button>
+      <form id="fCanc" method="POST">
+        <input type="hidden" name="motivo" id="motivoHidden">
+        <button type="submit" class="btn btn-danger btn-sm">Sim, cancelar</button>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+function abrirModal(id,tema,data){
+  const p=data.split('-');
+  document.getElementById('modalTxt').textContent=`Cancelar a festa "${tema}" do dia ${p[2]}/${p[1]}/${p[0]}?`;
+  document.getElementById('fCanc').action='/cancelar/'+id;
+  document.getElementById('modalCanc').classList.add('open');
+}
+function fecharModal(){document.getElementById('modalCanc').classList.remove('open');}
+document.getElementById('fCanc').addEventListener('submit',function(){
+  document.getElementById('motivoHidden').value=document.getElementById('motivoTxt').value;
+});
+document.getElementById('modalCanc').addEventListener('click',function(e){if(e.target===this)fecharModal();});
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}FestasVIP — Festas Temáticas{% endblock %}
+{% block extra_style %}
+<style>
+.hero{min-height:calc(100vh - 64px);display:flex;align-items:center;justify-content:center;text-align:center;padding:3rem 1rem;background:linear-gradient(160deg,#faf8ff,#f0ebff 50%,#fdf2f8);margin:-2rem -1.5rem -4rem}
+.hero-inner{max-width:520px}
+.hero-emoji{font-size:4.5rem;display:block;margin-bottom:1rem;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.hero h1{font-size:2.6rem;line-height:1.1;margin-bottom:1rem;background:linear-gradient(135deg,#7209b7,#f72585);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:#6b7280;font-size:1rem;line-height:1.7;margin-bottom:2.2rem}
+.hero-btns{display:flex;gap:.9rem;justify-content:center;flex-wrap:wrap}
+.hero-btns .btn{min-width:170px;padding:.9rem 1.8rem;font-size:.95rem}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;margin-top:2.5rem;text-align:left}
+.feat{background:rgba(255,255,255,.7);backdrop-filter:blur(8px);border:1px solid rgba(114,9,183,.1);border-radius:12px;padding:1.1rem}
+.feat-icon{font-size:1.6rem;margin-bottom:.4rem}
+.feat h3{font-size:.88rem;font-weight:700;color:#1a1a2e;margin-bottom:.25rem}
+.feat p{font-size:.78rem;color:#6b7280;line-height:1.5}
+.admin-link{margin-top:2rem;padding-top:1.2rem;border-top:1px solid rgba(114,9,183,.1)}
+.admin-link a{color:#9ca3af;font-size:.76rem;text-decoration:none;padding:.35rem .85rem;border-radius:20px;border:1px solid transparent;transition:all .2s;display:inline-flex;align-items:center;gap:.35rem}
+.admin-link a:hover{color:#4f46e5;border-color:#e0e7ff;background:#f5f3ff}
+@media(max-width:600px){.hero h1{font-size:2rem}.features{grid-template-columns:1fr}.hero-btns .btn{width:100%}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="hero">
+  <div class="hero-inner">
+    <span class="hero-emoji">🎊</span>
+    <h1>Sua festa dos sonhos começa aqui</h1>
+    <p>Agende festas temáticas incríveis com facilidade. Escolha a data, o tema perfeito e deixa o resto com a gente!</p>
+    <div class="hero-btns">
+      <a href="{{ url_for('cliente.cadastro') }}" class="btn btn-primary">✨ Criar minha conta</a>
+      <a href="{{ url_for('cliente.login') }}" class="btn btn-secondary">🔑 Já tenho cadastro</a>
+    </div>
+    <div class="admin-link"><a href="{{ url_for('admin.login') }}">🔐 Acesso do administrador</a></div>
+    <div class="features">
+      <div class="feat"><div class="feat-icon">📅</div><h3>Datas disponíveis</h3><p>Reserve com poucos cliques</p></div>
+      <div class="feat"><div class="feat-icon">🎨</div><h3>Temas exclusivos</h3><p>Do fundo do mar ao espaço sideral</p></div>
+      <div class="feat"><div class="feat-icon">✏️</div><h3>Personalize</h3><p>Entrega, retirada e observações</p></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

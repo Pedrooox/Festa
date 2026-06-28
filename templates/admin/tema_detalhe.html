@@ -1,0 +1,369 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}{{ tema.nome }}{% endblock %}
+{% block page_title %}Gerenciar Tema{% endblock %}
+
+{% block extra_style %}
+<style>
+.tema-header {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    background: linear-gradient(135deg, {{ tema.cor }}33, {{ tema.cor }}11);
+    border: 1.5px solid {{ tema.cor }}55;
+    border-radius: 14px;
+    padding: 1.3rem 1.5rem;
+    margin-bottom: 1.4rem;
+}
+.th-emoji { font-size: 3rem; }
+.th-info { flex: 1; }
+.th-nome { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 900; color: var(--tx); margin-bottom: .2rem; }
+.th-valor { font-size: 1.1rem; font-weight: 800; color: var(--i); }
+.th-status { margin-top: .4rem; }
+.th-actions { display: flex; flex-direction: column; gap: .4rem; align-items: flex-end; }
+
+/* Tabs */
+.tab-nav {
+    display: flex;
+    gap: .3rem;
+    border-bottom: 2px solid var(--borda);
+    margin-bottom: 1.3rem;
+}
+.tab-btn {
+    padding: .6rem 1.2rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--mu);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all .15s;
+}
+.tab-btn:hover { color: var(--i); }
+.tab-btn.active { color: var(--i); border-bottom-color: var(--i); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Itens */
+.itens-lista { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .8rem; }
+.item-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 38px;
+    gap: .5rem;
+    align-items: center;
+}
+.btn-rm {
+    width: 36px; height: 34px; border-radius: 7px;
+    background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+    cursor: pointer; font-size: .85rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .13s;
+}
+.btn-rm:hover { background: #ef4444; color: #fff; }
+
+/* Imagens */
+.img-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: .8rem;
+    margin-bottom: 1rem;
+}
+.img-card {
+    border: 1.5px solid var(--borda);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+.img-card img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    display: block;
+    background: #f8fafc;
+}
+.img-placeholder {
+    width: 100%;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    font-size: 2rem;
+    color: var(--mu);
+}
+.img-url {
+    padding: .4rem .6rem;
+    font-size: .72rem;
+    color: var(--mu);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-top: 1px solid var(--borda);
+}
+.img-remove-btn {
+    position: absolute;
+    top: .35rem;
+    right: .35rem;
+    width: 24px; height: 24px;
+    background: rgba(239,68,68,.85);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: .7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity .13s;
+}
+.img-remove-btn:hover { background: #dc2626; }
+.img-add-row { display: grid; grid-template-columns: 1fr auto; gap: .5rem; align-items: center; }
+.img-empty { text-align: center; padding: 1.8rem; color: var(--mu); font-size: .87rem; grid-column: 1/-1; }
+
+/* Cor */
+.color-wrap { display: flex; align-items: center; gap: .5rem; }
+.color-wrap input[type=color] { width: 40px; height: 34px; padding: 0; border: 1.5px solid var(--borda); border-radius: 6px; cursor: pointer; }
+
+/* Inativação */
+.inativ-box {
+    background: {{ '#d1fae5' if tema.ativo else '#fee2e2' }};
+    border: 1.5px solid {{ '#6ee7b7' if tema.ativo else '#fca5a5' }};
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.inativ-box h4 { font-size: .93rem; font-weight: 700; color: {{ '#065f46' if tema.ativo else '#991b1b' }}; margin-bottom: .2rem; }
+.inativ-box p { font-size: .82rem; color: {{ '#047857' if tema.ativo else '#b91c1c' }}; line-height: 1.5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 flex gap-2 items-center">
+    <a href="{{ url_for('admin.temas') }}" class="btn btn-secondary btn-sm">← Catálogo</a>
+    <span class="text-muted text-sm">/ {{ tema.nome }}</span>
+</div>
+
+<!-- Header do tema -->
+<div class="tema-header">
+    <span class="th-emoji">{{ tema.emoji }}</span>
+    <div class="th-info">
+        <div class="th-nome">{{ tema.nome }}</div>
+        <div class="th-valor">R$ {{ "%.2f" | format(tema.valor or 0) | replace(".", ",") }} / evento</div>
+        <div class="th-status">
+            <span class="badge {{ 'badge-ativo' if tema.ativo else 'badge-inativo' }}">
+                {{ '✅ Disponível no site' if tema.ativo else '🔴 Indisponível' }}
+            </span>
+        </div>
+    </div>
+    <div class="th-actions">
+        <a href="{{ url_for('cliente.agendar_tema', tema_id=tema.id) }}" target="_blank"
+           class="btn btn-secondary btn-sm">👁️ Ver no site</a>
+        <span class="text-muted" style="font-size:.72rem;text-align:right">ID #{{ tema.id }}</span>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('dados', this)">📋 Dados gerais</button>
+    <button class="tab-btn" onclick="showTab('itens', this)">📦 Itens ({{ itens|length }})</button>
+    <button class="tab-btn" onclick="showTab('imagens', this)">🖼️ Imagens ({{ imagens|length }})</button>
+    <button class="tab-btn" onclick="showTab('status', this)">⚙️ Status</button>
+</div>
+
+<!-- Tab: Dados gerais -->
+<div class="tab-panel active" id="tab-dados">
+    <div class="card">
+        <div class="card-title">📋 Editar dados gerais</div>
+        <form method="POST" action="{{ url_for('admin.tema_editar', tid=tema.id) }}">
+            <div class="form-row">
+                <div class="form-group" style="grid-column:1/-1">
+                    <label class="lbl">Nome *</label>
+                    <input type="text" name="nome" value="{{ tema.nome }}" required>
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                    <label class="lbl">Descrição</label>
+                    <textarea name="descricao">{{ tema.descricao or '' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="lbl">💰 Valor do aluguel (R$)</label>
+                    <input type="text" name="valor"
+                           value="{{ '%.2f' | format(tema.valor or 0) | replace('.', ',') }}">
+                </div>
+                <div class="form-group">
+                    <label class="lbl">Emoji</label>
+                    <input type="text" name="emoji" value="{{ tema.emoji }}" maxlength="4"
+                           style="font-size:1.4rem;text-align:center">
+                </div>
+                <div class="form-group">
+                    <label class="lbl">Cor de destaque</label>
+                    <div class="color-wrap">
+                        <input type="color" id="cp" name="cor" value="{{ tema.cor }}">
+                        <input type="text" id="ch" value="{{ tema.cor }}"
+                               oninput="document.getElementById('cp').value=this.value">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:.8rem">
+                💾 Salvar dados gerais
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Tab: Itens -->
+<div class="tab-panel" id="tab-itens">
+    <div class="card">
+        <div class="card-title">📦 Itens inclusos no tema</div>
+        <p class="text-muted text-sm" style="margin-bottom:1rem">
+            Gerencie todos os itens que compõem este tema. Informe nome e quantidade de cada um.
+            Ao salvar, a lista atual será completamente substituída.
+        </p>
+        <form method="POST" action="{{ url_for('admin.tema_itens_salvar', tid=tema.id) }}">
+            <div class="itens-lista" id="itens-lista">
+                {% if itens %}
+                {% for it in itens %}
+                <div class="item-row">
+                    <input type="text" name="item_nome[]" value="{{ it.nome }}" placeholder="Nome do item" required>
+                    <input type="number" name="item_qtd[]" value="{{ it.quantidade }}" min="1" placeholder="Qtd">
+                    <button type="button" class="btn-rm" onclick="removerItem(this)" title="Remover">✕</button>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="item-row">
+                    <input type="text" name="item_nome[]" placeholder="Nome do item (ex: Mesa decorada)">
+                    <input type="number" name="item_qtd[]" value="1" min="1" placeholder="Qtd">
+                    <button type="button" class="btn-rm" onclick="removerItem(this)">✕</button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="flex gap-3" style="margin-top:.4rem">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="adicionarItem()">
+                    ➕ Adicionar item
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm">💾 Salvar itens</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tab: Imagens -->
+<div class="tab-panel" id="tab-imagens">
+    <div class="card">
+        <div class="card-title">🖼️ Imagens do tema</div>
+        <p class="text-muted text-sm" style="margin-bottom:1rem">
+            A primeira imagem será exibida como principal no catálogo e na página de detalhes.
+        </p>
+
+        <div class="img-grid">
+            {% if imagens %}
+            {% for img in imagens %}
+            <div class="img-card">
+                <img src="{{ img.url }}" alt="Imagem {{ loop.index }}"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="img-placeholder" style="display:none">🖼️</div>
+                <form method="POST"
+                      action="{{ url_for('admin.tema_imagem_remover', tid=tema.id, img_id=img.id) }}"
+                      style="display:inline">
+                    <button type="submit" class="img-remove-btn" title="Remover imagem"
+                            onclick="return confirm('Remover esta imagem?')">✕</button>
+                </form>
+                <div class="img-url">{{ img.url }}</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="img-empty">🖼️ Nenhuma imagem cadastrada ainda.</div>
+            {% endif %}
+        </div>
+
+        <!-- Adicionar nova imagem -->
+        <div style="border-top:1px solid var(--borda);padding-top:1rem;margin-top:.5rem">
+            <label class="lbl" style="margin-bottom:.5rem;display:block">Adicionar imagem por URL</label>
+            <form method="POST" action="{{ url_for('admin.tema_imagem_adicionar', tid=tema.id) }}">
+                <div class="img-add-row">
+                    <input type="text" name="url" placeholder="https://exemplo.com/imagem.jpg" required>
+                    <button type="submit" class="btn btn-primary btn-sm">➕ Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Status -->
+<div class="tab-panel" id="tab-status">
+    <div class="card">
+        <div class="card-title">⚙️ Status de disponibilidade</div>
+        <p class="text-muted text-sm" style="margin-bottom:1.2rem">
+            O tema pode ser inativado sem ser excluído permanentemente.
+            Temas indisponíveis não aparecem no catálogo para novos clientes,
+            mas agendamentos existentes não são afetados.
+        </p>
+
+        <div class="inativ-box">
+            <div>
+                {% if tema.ativo %}
+                <h4>✅ Tema disponível no site</h4>
+                <p>Clientes podem visualizar e reservar este tema normalmente.</p>
+                {% else %}
+                <h4>🔴 Tema indisponível (inativo)</h4>
+                <p>O tema está oculto do catálogo. Clientes não conseguem visualizar ou reservar.</p>
+                {% endif %}
+            </div>
+            <form method="POST" action="{{ url_for('admin.tema_toggle', tid=tema.id) }}">
+                <button type="submit"
+                        class="btn {{ 'btn-danger' if tema.ativo else 'btn-success' }} btn-sm"
+                        onclick="return confirm('{{ 'Inativar este tema? Ele ficará indisponível no site.' if tema.ativo else 'Reativar este tema? Ele voltará a aparecer no site.' }}')">
+                    {{ '🔴 Inativar tema' if tema.ativo else '✅ Reativar tema' }}
+                </button>
+            </form>
+        </div>
+
+        <div style="margin-top:1.2rem;background:#fef3c7;border:1px solid #fcd34d;border-radius:9px;padding:.9rem 1.1rem;font-size:.83rem;color:#92400e;">
+            ⚠️ <strong>Nota:</strong> A exclusão permanente de temas não é permitida caso haja agendamentos vinculados.
+            Utilize a inativação para tornar o tema indisponível sem perder o histórico.
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('cp').addEventListener('input',function(){document.getElementById('ch').value=this.value;});
+
+function showTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+}
+
+function adicionarItem() {
+    const lista = document.getElementById('itens-lista');
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = '<input type="text" name="item_nome[]" placeholder="Nome do item">' +
+                    '<input type="number" name="item_qtd[]" value="1" min="1" placeholder="Qtd">' +
+                    '<button type="button" class="btn-rm" onclick="removerItem(this)">✕</button>';
+    lista.appendChild(row);
+    row.querySelector('input').focus();
+}
+
+function removerItem(btn) {
+    const lista = document.getElementById('itens-lista');
+    if (lista.children.length > 1) {
+        btn.closest('.item-row').remove();
+    } else {
+        btn.closest('.item-row').querySelectorAll('input').forEach(i => i.value = '');
+    }
+}
+
+// Abrir tab por hash URL (ex: #itens, #imagens)
+const hash = window.location.hash.replace('#','');
+if (hash) {
+    const btn = document.querySelector(`.tab-btn[onclick*="${hash}"]`);
+    if (btn) btn.click();
+}
+</script>
+{% endblock %}

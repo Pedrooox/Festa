@@ -1,0 +1,69 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Disponibilidades{% endblock %}
+{% block page_title %}Gerenciar Disponibilidades{% endblock %}
+{% block content %}
+<div class="grid-2 mb-6">
+  <div class="card">
+    <div class="card-title">➕ Adicionar data</div>
+    <form method="POST" action="{{ url_for('admin.disponibilidade_nova') }}">
+      <div class="form-group" style="margin-bottom:.8rem">
+        <label class="lbl">Data</label>
+        <input type="date" name="data" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm" style="width:100%">📅 Adicionar data</button>
+    </form>
+  </div>
+  <div class="card" style="background:#eff6ff;border-color:#bfdbfe">
+    <div class="card-title">💡 Sobre disponibilidades</div>
+    <div class="text-muted text-sm" style="line-height:1.7">
+      <p>As datas aqui são as que aparecem para os clientes ao agendar.</p>
+      <p style="margin-top:.5rem">🟢 <strong>Livre</strong> — aparece para o cliente agendar</p>
+      <p>🔴 <strong>Ocupado</strong> — já reservada ou bloqueada manualmente</p>
+      <p style="margin-top:.5rem">Ao cancelar um agendamento a data volta para Livre automaticamente.</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title flex justify-between items-center">
+    <span>🗓️ Datas cadastradas</span>
+    <span class="text-muted text-sm">{{ disponibilidades|length }} datas</span>
+  </div>
+  {% if disponibilidades %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Data</th><th>Dia da semana</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>
+      {% for d in disponibilidades %}
+      {% set p = d.data.split('-') %}
+      {% set dias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'] %}
+      <tr>
+        <td class="text-muted text-sm">{{ d.id }}</td>
+        <td class="font-bold text-sm">{{ p[2] }}/{{ p[1] }}/{{ p[0] }}</td>
+        <td class="text-sm text-muted">{{ d.data_br.split('(')[1].rstrip(')') if '(' in d.data_br else '—' }}</td>
+        <td><span class="badge badge-{{ d.status }}">{{ d.status }}</span></td>
+        <td>
+          <div class="flex gap-2">
+            <form method="POST" action="{{ url_for('admin.disponibilidade_toggle',disp_id=d.id) }}" style="display:inline">
+              <button type="submit" class="btn btn-xs {{ 'btn-danger' if d.status=='Livre' else 'btn-success' }}">
+                {{ '🔴 Bloquear' if d.status=='Livre' else '🟢 Liberar' }}
+              </button>
+            </form>
+            {% if d.status == 'Livre' %}
+            <form method="POST" action="{{ url_for('admin.disponibilidade_excluir',disp_id=d.id) }}"
+                  onsubmit="return confirm('Excluir esta data?')" style="display:inline">
+              <button type="submit" class="btn btn-danger btn-xs">🗑️</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:2.5rem;color:var(--mu)">📭 Nenhuma data cadastrada.</div>
+  {% endif %}
+</div>
+{% endblock %}

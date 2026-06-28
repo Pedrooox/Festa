@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Agendar Festa — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.section{background:#fff;border:1.5px solid #e5e7f0;border-radius:14px;padding:1.4rem;margin-bottom:1.1rem;box-shadow:0 2px 8px rgba(114,9,183,.05)}
+.section-title{font-family:'Playfair Display',serif;font-size:1rem;color:#3a0ca3;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1.5px solid #e5e7f0;display:flex;align-items:center;gap:.5rem}
+.step-tag{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#f72585;display:block;margin-bottom:.35rem}
+.datas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.5rem;max-height:270px;overflow-y:auto;padding:.2rem}
+.data-btn{padding:.65rem .5rem;border:1.5px solid #e5e7f0;border-radius:9px;background:#fdfcff;cursor:pointer;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:500;color:#374151;text-align:center;transition:all .17s;line-height:1.3}
+.data-btn:hover{border-color:#7209b7;background:#f5f0ff;color:#7209b7}
+.data-btn.sel{border-color:#f72585;background:linear-gradient(135deg,rgba(247,37,133,.07),rgba(114,9,183,.07));color:#7209b7;font-weight:700;box-shadow:0 0 0 2.5px rgba(247,37,133,.15)}
+input[type=radio]{display:none}
+.temas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:.7rem}
+.tema-card{border:2px solid #e5e7f0;border-radius:13px;padding:1rem .8rem;cursor:pointer;text-align:center;transition:all .18s;background:#fdfcff;position:relative}
+.tema-card:hover{border-color:#7209b7;transform:translateY(-3px);box-shadow:0 6px 16px rgba(114,9,183,.12)}
+.tema-card.sel{border-color:#f72585;box-shadow:0 0 0 3px rgba(247,37,133,.15)}
+.tema-check{position:absolute;top:.45rem;right:.45rem;width:18px;height:18px;border-radius:50%;background:#f72585;color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s}
+.tema-card.sel .tema-check{opacity:1}
+.tema-emoji{font-size:2rem;display:block;margin-bottom:.4rem}
+.tema-nome{font-weight:700;font-size:.85rem;color:#1a1a2e;margin-bottom:.2rem}
+.tema-desc{font-size:.74rem;color:#6b7280;line-height:1.4}
+.resumo{background:linear-gradient(135deg,rgba(247,37,133,.05),rgba(114,9,183,.05));border:1.5px solid rgba(114,9,183,.15);border-radius:11px;padding:1.1rem;margin-bottom:1.1rem;display:none}
+.resumo.show{display:block}
+.resumo-titulo{font-weight:700;color:#7209b7;font-size:.88rem;margin-bottom:.5rem}
+.resumo-item{font-size:.88rem;color:#374151;margin-bottom:.25rem}
+.resumo-item span{font-weight:600;color:#3a0ca3}
+</style>
+{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <h1>🎉 Agendar nova festa</h1>
+  <p class="subtitle">Preencha os detalhes do seu evento</p>
+</div>
+
+{% if not datas %}
+<div class="card" style="text-align:center;padding:3rem">
+  <p style="font-size:2.5rem;margin-bottom:.8rem">😔</p>
+  <h2>Nenhuma data disponível</h2>
+  <p style="color:#6b7280;margin-top:.4rem">Entre em contato conosco para mais informações.</p>
+  <a href="{{ url_for('cliente.menu') }}" class="btn btn-secondary" style="margin-top:1.4rem">← Voltar</a>
+</div>
+{% else %}
+<form method="POST" id="form-ag">
+  <!-- DATAS -->
+  <div class="section">
+    <div class="section-title">📅 Passo 1 — Escolha a data</div>
+    <span class="step-tag">Datas disponíveis (sextas, sábados e domingos)</span>
+    <div class="datas-grid">
+      {% for d in datas %}
+      <label>
+        <input type="radio" name="data_evento" value="{{ d.data }}" required>
+        <div class="data-btn" data-v="{{ d.data }}">{{ d.data_br }}</div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- TEMAS -->
+  <div class="section">
+    <div class="section-title">🎨 Passo 2 — Escolha o tema</div>
+    <div class="temas-grid">
+      {% for t in temas %}
+      <label>
+        <input type="radio" name="tema_id" value="{{ t.id }}" required>
+        <div class="tema-card" data-id="{{ t.id }}">
+          <div class="tema-check">✓</div>
+          <span class="tema-emoji">{{ t.emoji }}</span>
+          <div class="tema-nome">{{ t.nome }}</div>
+          <div class="tema-desc">{{ t.descricao }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- DETALHES -->
+  <div class="section">
+    <div class="section-title">📝 Passo 3 — Detalhes do evento</div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>💰 Valor total estimado (R$)</label>
+        <input type="text" name="valor_total" placeholder="Ex: 1500,00" id="valor">
+      </div>
+      <div class="form-group">
+        <label>🚚 Entrega ou retirada?</label>
+        <select name="entrega_retirada" required>
+          <option value="Retirada">🏠 Retirada no local</option>
+          <option value="Entrega">🚚 Entrega no endereço</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>✏️ Observações</label>
+      <textarea name="observacoes" placeholder="Ex: 20 crianças, aniversariante se chama Ana, preferência por tons de rosa..."></textarea>
+    </div>
+  </div>
+
+  <!-- RESUMO -->
+  <div class="resumo" id="resumo">
+    <div class="resumo-titulo">📋 Resumo</div>
+    <div class="resumo-item">📅 Data: <span id="res-data">—</span></div>
+    <div class="resumo-item">🎨 Tema: <span id="res-tema">—</span></div>
+  </div>
+
+  <div class="flex gap-3" style="flex-wrap:wrap">
+    <button type="submit" class="btn btn-primary" style="flex:1;min-width:200px;padding:.9rem">🎉 Confirmar agendamento</button>
+    <a href="{{ url_for('cliente.menu') }}" class="btn btn-secondary">← Cancelar</a>
+  </div>
+</form>
+{% endif %}
+
+<script>
+const temasData = {{ temas_json | tojson }};
+document.querySelectorAll('input[name="data_evento"]').forEach(r=>{
+  r.addEventListener('change',function(){
+    document.querySelectorAll('.data-btn').forEach(b=>b.classList.remove('sel'));
+    this.closest('label').querySelector('.data-btn').classList.add('sel');
+    atualizarResumo();
+  });
+});
+document.querySelectorAll('input[name="tema_id"]').forEach(r=>{
+  r.addEventListener('change',function(){
+    document.querySelectorAll('.tema-card').forEach(c=>c.classList.remove('sel'));
+    this.closest('label').querySelector('.tema-card').classList.add('sel');
+    atualizarResumo();
+  });
+});
+function atualizarResumo(){
+  const dr=document.querySelector('input[name="data_evento"]:checked');
+  const tr=document.querySelector('input[name="tema_id"]:checked');
+  const resumo=document.getElementById('resumo');
+  if(dr||tr) resumo.classList.add('show');
+  if(dr){const lbl=document.querySelector(`.data-btn[data-v="${dr.value}"]`);document.getElementById('res-data').textContent=lbl?lbl.textContent.trim():dr.value;}
+  if(tr){const t=temasData.find(x=>String(x.id)===tr.value);document.getElementById('res-tema').textContent=t?t.emoji+' '+t.nome:'';}
+}
+// Máscara valor
+document.getElementById('valor').addEventListener('input',function(e){
+  let v=e.target.value.replace(/[^\d,]/g,'');
+  e.target.value=v;
+});
+</script>
+{% endblock %}

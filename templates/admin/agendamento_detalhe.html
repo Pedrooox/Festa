@@ -1,0 +1,116 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Agendamento #{{ ag.id }}{% endblock %}
+{% block page_title %}Detalhe do Agendamento{% endblock %}
+{% block extra_style %}
+<style>
+.info-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mu);margin-bottom:.12rem}
+.info-val{font-size:.92rem;font-weight:500;color:var(--tx)}
+.info-block{margin-bottom:.7rem}
+.sep{border:none;border-top:1px solid var(--borda);margin:1rem 0}
+.pag-ok{background:#dbeafe;border:1.5px solid #93c5fd;border-radius:9px;padding:.9rem 1.1rem;margin-top:.8rem}
+.pag-ok h4{color:#1d4ed8;margin-bottom:.5rem;font-size:.9rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="mb-4 flex gap-2 items-center">
+  <a href="{{ url_for('admin.agendamentos') }}" class="btn btn-secondary btn-sm">← Voltar</a>
+  <span class="text-muted text-sm">Agendamento #{{ ag.id }}</span>
+</div>
+
+<div class="grid-2">
+  <!-- Agendamento -->
+  <div class="card">
+    <div class="card-title">📅 Dados do Agendamento</div>
+    <div class="info-block"><div class="info-lbl">Status</div><div><span class="badge badge-{{ ag.status }}">{{ ag.status }}</span></div></div>
+    <div class="info-block"><div class="info-lbl">Data do evento</div><div class="info-val" style="font-size:1.15rem;font-weight:800;color:var(--i)">{{ ag.data_evento | replace('-','/') }}</div></div>
+    <div class="info-block"><div class="info-lbl">Tema</div><div class="info-val">{{ ag.tema_nome }}</div></div>
+    <div class="info-block"><div class="info-lbl">Valor total</div><div class="info-val">{% if ag.valor_total %}R$ {{ "%.2f" | format(ag.valor_total) | replace('.',',') }}{% else %}—{% endif %}</div></div>
+    <div class="info-block"><div class="info-lbl">Entrega / Retirada</div><div><span class="badge badge-{{ ag.entrega_retirada }}">{{ ag.entrega_retirada }}</span></div></div>
+    {% if ag.motivo_cancelamento %}<div class="info-block"><div class="info-lbl">Motivo do cancelamento</div><div class="info-val">{{ ag.motivo_cancelamento }}</div></div>{% endif %}
+    {% if ag.observacoes %}<div class="info-block"><div class="info-lbl">Observações</div><div style="background:#f8fafc;border:1px solid var(--borda);border-radius:7px;padding:.65rem .8rem;font-size:.88rem;font-style:italic">{{ ag.observacoes }}</div></div>{% endif %}
+    <div class="info-block"><div class="info-lbl">Agendado em</div><div class="info-val text-sm">{{ ag.criado_em[:16] if ag.criado_em else '—' }}</div></div>
+    <hr class="sep">
+    <!-- Editar agendamento -->
+    <form method="POST" action="{{ url_for('admin.agendamento_atualizar',ag_id=ag.id) }}">
+      <div class="form-row form-row-2" style="margin-bottom:.7rem">
+        <div class="form-group">
+          <label class="lbl">Status</label>
+          <select name="status">{% for s in status_opts %}<option value="{{ s }}" {{ 'selected' if ag.status==s }}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group">
+          <label class="lbl">Entrega / Retirada</label>
+          <select name="entrega_retirada">
+            <option value="Retirada" {{ 'selected' if ag.entrega_retirada=='Retirada' }}>Retirada</option>
+            <option value="Entrega" {{ 'selected' if ag.entrega_retirada=='Entrega' }}>Entrega</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="lbl">Valor total (R$)</label>
+          <input type="number" step="0.01" name="valor_total" value="{{ ag.valor_total or '' }}" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="lbl">Motivo cancelamento</label>
+          <input type="text" name="motivo_cancelamento" value="{{ ag.motivo_cancelamento or '' }}">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">💾 Salvar agendamento</button>
+    </form>
+  </div>
+
+  <!-- Cliente -->
+  <div>
+    <div class="card mb-4">
+      <div class="card-title">👤 Cliente</div>
+      <div class="info-block"><div class="info-lbl">Nome</div><div class="info-val font-bold">{{ ag.cli_nome }}</div></div>
+      <div class="info-block"><div class="info-lbl">E-mail</div><div class="info-val"><a href="mailto:{{ ag.email }}" style="color:var(--i)">{{ ag.email }}</a></div></div>
+      <div class="info-block"><div class="info-lbl">Telefone</div><div class="info-val">{% if ag.telefone %}<a href="https://wa.me/55{{ ag.telefone | replace('(','') | replace(')','') | replace(' ','') | replace('-','') }}" target="_blank" style="color:#059669">{{ ag.telefone }} 📱</a>{% else %}—{% endif %}</div></div>
+      <div class="info-block"><div class="info-lbl">CPF</div><div class="info-val">{{ ag.cpf }}</div></div>
+      <div class="info-block"><div class="info-lbl">CEP</div><div class="info-val">{{ ag.cep }}</div></div>
+      {% if ag.endereco %}<div class="info-block"><div class="info-lbl">Endereço</div><div class="info-val text-sm">{{ ag.endereco }}</div></div>{% endif %}
+      <hr class="sep">
+      <a href="{{ url_for('admin.cliente_detalhe',cli_id=ag.cliente_id) }}" class="btn btn-secondary btn-sm">Ver perfil completo →</a>
+    </div>
+
+    <!-- Pagamento -->
+    <div class="card">
+      <div class="card-title">💳 Pagamento</div>
+      {% if pag %}
+      <div class="info-block"><div class="info-lbl">ID do Pagamento</div><div class="info-val">#{{ pag.id }}</div></div>
+      <div class="info-block"><div class="info-lbl">Valor</div><div class="info-val">R$ {{ "%.2f" | format(pag.valor or 0) | replace('.',',') }}</div></div>
+      <div class="info-block"><div class="info-lbl">Status</div><div><span class="badge badge-{{ pag.status }}">{{ pag.status }}</span></div></div>
+      <div class="info-block"><div class="info-lbl">Forma de pagamento</div><div class="info-val">{{ pag.forma_pagamento or '—' }}</div></div>
+      {% if pag.valor_reembolso %}<div class="info-block"><div class="info-lbl">Valor do reembolso</div><div class="info-val">R$ {{ "%.2f" | format(pag.valor_reembolso) | replace('.',',') }}</div></div>{% endif %}
+      {% if pag.fp_nome %}<div class="pag-ok"><h4>✅ Reembolso processado</h4><div class="text-sm">Via {{ pag.fp_nome }} em {{ pag.processado_em[:10] if pag.processado_em else '—' }}<br>{% if pag.reemb_motivo %}Motivo: {{ pag.reemb_motivo }}{% endif %}</div></div>{% endif %}
+      <hr class="sep">
+      <form method="POST" action="{{ url_for('admin.pagamento_atualizar',ag_id=ag.id) }}">
+        <div class="form-row form-row-2" style="margin-bottom:.7rem">
+          <div class="form-group">
+            <label class="lbl">Status pagamento</label>
+            <select name="status">{% for s in pag_status_opts %}<option value="{{ s }}" {{ 'selected' if pag.status==s }}>{{ s }}</option>{% endfor %}</select>
+          </div>
+          <div class="form-group">
+            <label class="lbl">Forma de pagamento</label>
+            <input type="text" name="forma_pagamento" value="{{ pag.forma_pagamento or '' }}" placeholder="PIX, Cartão...">
+          </div>
+          <div class="form-group">
+            <label class="lbl">Valor do reembolso (R$)</label>
+            <input type="number" step="0.01" name="valor_reembolso" value="{{ pag.valor_reembolso or '' }}" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="lbl">Forma pagamento (reembolso)</label>
+            <select name="forma_pagamento_id"><option value="">—</option>{% for fp in fps %}<option value="{{ fp.id }}">{{ fp.nome }}</option>{% endfor %}</select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:.7rem">
+          <label class="lbl">Motivo do reembolso</label>
+          <input type="text" name="motivo_reembolso" placeholder="Cancelamento pelo cliente...">
+        </div>
+        <button type="submit" class="btn btn-success btn-sm">💾 Salvar pagamento</button>
+      </form>
+      {% else %}
+      <p class="text-muted">Pagamento não encontrado.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

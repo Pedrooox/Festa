@@ -1,0 +1,65 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Temas{% endblock %}
+{% block page_title %}Catálogo de Temas{% endblock %}
+{% block extra_style %}
+<style>
+.temas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.tc{background:#fff;border:1.5px solid var(--borda);border-radius:12px;overflow:hidden;transition:box-shadow .15s;display:flex;flex-direction:column}
+.tc:hover{box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.tc.inativo{opacity:.6}
+.tc-banner{height:88px;display:flex;align-items:center;justify-content:center;font-size:3.2rem;position:relative}
+.tc-sbadge{position:absolute;top:.5rem;right:.5rem;font-size:.67rem;font-weight:700;padding:.18rem .55rem;border-radius:20px}
+.tc-body{padding:.9rem 1rem;flex:1;display:flex;flex-direction:column}
+.tc-nome{font-weight:800;font-size:.95rem;color:var(--tx);margin-bottom:.2rem}
+.tc-desc{font-size:.78rem;color:var(--mu);line-height:1.5;margin-bottom:.6rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.tc-meta{display:flex;justify-content:space-between;align-items:center;padding-top:.6rem;border-top:1px solid var(--borda);margin-top:auto}
+.tc-valor{font-weight:800;color:var(--i);font-size:.95rem}
+.tc-counts{display:flex;gap:.4rem;font-size:.72rem;color:var(--mu)}
+.tc-footer{padding:.6rem 1rem;background:#f8fafc;border-top:1px solid var(--borda);display:flex;gap:.4rem;justify-content:flex-end}
+.ftabs{display:flex;gap:.4rem;margin-bottom:1.1rem}
+.ftab{padding:.42rem .95rem;border-radius:7px;font-size:.81rem;font-weight:600;text-decoration:none;color:var(--mu);border:1.5px solid var(--borda);background:#fff;transition:all .14s}
+.ftab:hover{border-color:var(--i);color:var(--i)}
+.ftab.ativo{background:var(--i);color:#fff;border-color:var(--i)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-6" style="flex-wrap:wrap;gap:.8rem">
+    <span class="text-muted text-sm">{{ temas|length }} tema(s) cadastrado(s)</span>
+    <a href="{{ url_for('admin.tema_novo') }}" class="btn btn-primary">➕ Novo tema</a>
+</div>
+<div class="ftabs">
+    <a href="{{ url_for('admin.temas') }}" class="ftab {{ 'ativo' if not request.args.get('filtro') }}">Todos</a>
+    <a href="?filtro=ativos" class="ftab {{ 'ativo' if request.args.get('filtro')=='ativos' }}">✅ Disponíveis</a>
+    <a href="?filtro=inativos" class="ftab {{ 'ativo' if request.args.get('filtro')=='inativos' }}">🔴 Indisponíveis</a>
+</div>
+<div class="temas-grid">
+{% set filtro = request.args.get('filtro','') %}
+{% for t in temas %}
+{% if (filtro=='ativos' and t.ativo) or (filtro=='inativos' and not t.ativo) or not filtro %}
+<div class="tc {{ 'inativo' if not t.ativo }}">
+    <div class="tc-banner" style="background:linear-gradient(135deg,{{ t.cor }}55,{{ t.cor }}22)">
+        {{ t.emoji }}
+        <span class="tc-sbadge {{ 'badge-ativo' if t.ativo else 'badge-inativo' }}">
+            {{ '✅ Disponível' if t.ativo else '🔴 Indisponível' }}
+        </span>
+    </div>
+    <div class="tc-body">
+        <div class="tc-nome">{{ t.nome }}</div>
+        <div class="tc-desc">{{ t.descricao or '—' }}</div>
+        <div class="tc-meta">
+            <div class="tc-valor">R$ {{ "%.2f" | format(t.valor or 0) | replace(".",",") }}</div>
+            <div class="tc-counts"><span>📦 {{ t.total_itens }}it</span><span>🖼️ {{ t.total_imagens }}img</span></div>
+        </div>
+    </div>
+    <div class="tc-footer">
+        <a href="{{ url_for('admin.tema_detalhe', tid=t.id) }}" class="btn btn-secondary btn-xs">✏️ Gerenciar</a>
+    </div>
+</div>
+{% endif %}
+{% else %}
+<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--mu)">
+    📭 Nenhum tema. <a href="{{ url_for('admin.tema_novo') }}" style="color:var(--i);font-weight:600">Criar o primeiro →</a>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

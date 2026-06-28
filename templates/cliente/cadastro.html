@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Criar Conta — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.auth-wrap{max-width:520px;margin:1.5rem auto}
+.auth-header{text-align:center;margin-bottom:1.8rem}
+.auth-header .icon{font-size:2.8rem;display:block;margin-bottom:.6rem}
+.auth-header h1{font-size:1.75rem}
+.auth-header p{color:#6b7280;font-size:.88rem;margin-top:.25rem}
+.auth-footer{text-align:center;margin-top:1rem;font-size:.84rem;color:#6b7280}
+.auth-footer a{color:#7209b7;font-weight:600;text-decoration:none}
+.auth-footer a:hover{text-decoration:underline}
+.campo-obrig::after{content:" *";color:#e11d48}
+.hint-opcional{font-size:.72rem;color:#9ca3af;font-weight:400;margin-left:.3rem}
+.section-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#7209b7;margin:1.2rem 0 .6rem;padding-bottom:.3rem;border-bottom:1.5px solid #e5e7f0}
+</style>
+{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-header">
+    <span class="icon">🎈</span>
+    <h1>Criar minha conta</h1>
+    <p>Campos marcados com <span style="color:#e11d48">*</span> são obrigatórios</p>
+  </div>
+  <div class="card">
+    <form method="POST">
+      <div class="section-label">Dados pessoais</div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="campo-obrig">Nome completo</label>
+          <input type="text" name="nome" placeholder="Seu nome completo" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="campo-obrig">CPF</label>
+          <input type="text" name="cpf" id="cpf" placeholder="000.000.000-00" required maxlength="14" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="campo-obrig">E-mail</label>
+          <input type="email" name="email" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="campo-obrig">CEP</label>
+          <input type="text" name="cep" id="cep" placeholder="00000-000" required maxlength="9" autocomplete="postal-code">
+        </div>
+      </div>
+
+      <div class="section-label">Contato <span class="hint-opcional">(opcional)</span></div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label>Telefone / WhatsApp</label>
+          <input type="tel" name="telefone" id="tel" placeholder="(00) 00000-0000" autocomplete="tel">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Endereço completo</label>
+          <input type="text" name="endereco" placeholder="Rua, número, bairro, cidade">
+        </div>
+      </div>
+
+      <div class="section-label">Segurança</div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="campo-obrig">Senha</label>
+          <input type="password" name="senha" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="campo-obrig">Confirmar senha</label>
+          <input type="password" id="confirma" placeholder="Repita a senha" required autocomplete="new-password">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">✨ Criar minha conta</button>
+    </form>
+    <div class="divider">já tem conta?</div>
+    <a href="{{ url_for('cliente.login') }}" class="btn btn-secondary btn-full">🔑 Fazer login</a>
+  </div>
+  <div class="auth-footer"><a href="{{ url_for('cliente.index') }}">← Voltar ao início</a></div>
+</div>
+<script>
+// Máscara CPF
+document.getElementById('cpf').addEventListener('input',function(e){
+  let v=e.target.value.replace(/\D/g,'').substring(0,11);
+  if(v.length>=10)v=v.substring(0,3)+'.'+v.substring(3,6)+'.'+v.substring(6,9)+'-'+v.substring(9);
+  else if(v.length>=7)v=v.substring(0,3)+'.'+v.substring(3,6)+'.'+v.substring(6);
+  else if(v.length>=4)v=v.substring(0,3)+'.'+v.substring(3);
+  e.target.value=v;
+});
+// Máscara CEP
+document.getElementById('cep').addEventListener('input',function(e){
+  let v=e.target.value.replace(/\D/g,'').substring(0,8);
+  if(v.length>5)v=v.substring(0,5)+'-'+v.substring(5);
+  e.target.value=v;
+});
+// Máscara telefone
+document.getElementById('tel').addEventListener('input',function(e){
+  let v=e.target.value.replace(/\D/g,'').substring(0,11);
+  if(v.length>=7)v='('+v.substring(0,2)+') '+v.substring(2,7)+'-'+v.substring(7);
+  else if(v.length>=3)v='('+v.substring(0,2)+') '+v.substring(2);
+  else if(v.length)v='('+v;
+  e.target.value=v;
+});
+// Validação confirmação de senha
+document.querySelector('form').addEventListener('submit',function(e){
+  const s=document.querySelector('[name=senha]').value;
+  const c=document.getElementById('confirma').value;
+  if(s!==c){e.preventDefault();alert('As senhas não coincidem.');}
+});
+</script>
+{% endblock %}

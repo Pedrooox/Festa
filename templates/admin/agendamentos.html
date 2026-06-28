@@ -1,0 +1,49 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Agendamentos{% endblock %}
+{% block page_title %}Agendamentos{% endblock %}
+{% block extra_style %}
+<style>
+.filter-bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--borda);border-radius:9px;padding:.7rem 1rem;margin-bottom:1.1rem}
+.filter-bar select,.filter-bar input[type=date]{padding:.38rem .7rem;font-size:.83rem}
+</style>
+{% endblock %}
+{% block content %}
+<form method="GET" class="filter-bar">
+  <select name="status"><option value="">Todos os status</option>{% for s in status_opts %}<option value="{{ s }}" {{ 'selected' if filtro_status==s }}>{{ s }}</option>{% endfor %}</select>
+  <input type="date" name="data" value="{{ filtro_data }}">
+  <button type="submit" class="btn btn-primary btn-sm">🔍 Filtrar</button>
+  <a href="{{ url_for('admin.agendamentos') }}" class="btn btn-secondary btn-sm">Limpar</a>
+  <span class="text-muted text-sm" style="margin-left:auto">{{ agendamentos|length }} resultado(s)</span>
+</form>
+
+<div class="card">
+  <div class="card-title">📅 Lista de Agendamentos</div>
+  {% if agendamentos %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Data Evento</th><th>Tema</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Pagamento</th><th>Tipo</th><th></th></tr></thead>
+      <tbody>
+      {% for ag in agendamentos %}
+      <tr>
+        <td class="text-muted text-sm">#{{ ag.id }}</td>
+        <td><strong class="text-sm">{{ ag.data_evento | replace('-','/') }}</strong></td>
+        <td class="text-sm">{{ ag.tema_nome }}</td>
+        <td>
+          <div class="font-bold text-sm">{{ ag.cliente_nome }}</div>
+          <div class="text-muted" style="font-size:.74rem">{{ ag.email }}</div>
+        </td>
+        <td class="text-sm">{% if ag.valor_total %}R$ {{ "%.2f" | format(ag.valor_total) | replace('.',',') }}{% else %}—{% endif %}</td>
+        <td><span class="badge badge-{{ ag.status }}">{{ ag.status }}</span></td>
+        <td><span class="badge badge-{{ ag.pag_status or 'Pendente' }}">{{ ag.pag_status or '—' }}</span></td>
+        <td><span class="badge badge-{{ ag.entrega_retirada }}">{{ ag.entrega_retirada }}</span></td>
+        <td><a href="{{ url_for('admin.agendamento_detalhe',ag_id=ag.id) }}" class="btn btn-secondary btn-xs">Ver</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:2.5rem;color:var(--mu)">📭 Nenhum agendamento encontrado.</div>
+  {% endif %}
+</div>
+{% endblock %}
