@@ -11,9 +11,9 @@ from flask import (
 from functools import wraps
 from models import (
     Cliente, Tema, TemaItem, TemaImagem, Disponibilidade,
-    Agendamento, Pagamento, Entrega, FormaPagamento,
-    StatusAgendamento, StatusPagamento,
-    EntregaRetirada, StatusDisponibilidade
+    Agendamento, AgendamentoItemExtra, Reagendamento, Pagamento, Entrega, FormaPagamento,
+    StatusAgendamento, StatusPagamento, EntregaRetirada, StatusDisponibilidade,
+    PRECO_ITEM_EXTRA, MAX_QTD_ITEM_EXTRA, TAXA_REAGENDAMENTO,
 )
 
 # ── credenciais admin (produção: use env vars) ──
@@ -121,8 +121,35 @@ def menu():
 @cliente_bp.route("/meus-agendamentos")
 @login_required
 def meus_agendamentos():
-    ags = Agendamento.listar_por_cliente(session["cliente_id"])
-    return render_template("cliente/meus_agendamentos.html", agendamentos=ags)
+    """
+    Lista agendamentos ativos do cliente — aba 'Temas reservados'.
+    Filtra por status via ?filtro=ativo|cancelado|todos
+    """
+    from datetime import date, timedelta
+
+    filtro = request.args.get("filtro", "ativo")
+    ags_raw = Agendamento.listar_por_cliente(session["cliente_id"])
+
+    hoje = date.today()
+    agendamentos = []
+    for ag in ags_raw:
+        if filtro == "ativo"    and ag.status not in [StatusAgendamento.PENDENTE, StatusAgendamento.CONCLUIDO]:
+            continue
+        if filtro == "cancelado" and ag.status != StatusAgendamento.CANCELADO:
+            continue
+        # Adiciona prazo de cancelamento
+        try:
+            ev = date.fromisoformat(ag.data_evento)
+            prazo_canc = ev - timedelta(days=2)
+            ag._prazo_canc_ok  = hoje <= prazo_canc
+            ag._prazo_canc_fmt = prazo_canc.strftime("%d/%m/%Y")
+        except Exception:
+            ag._prazo_canc_ok  = False
+            ag._prazo_canc_fmt = "—"
+        agendamentos.append(ag)
+
+    return render_template("cliente/meus_agendamentos.html",
+                           agendamentos=agendamentos, filtro=filtro)
 
 
 # ── TELA 1: Catálogo de temas (listagem) ──
@@ -166,9 +193,11 @@ def agendar_tema(tema_id):
         flash("Tema não encontrado.", "erro")
         return redirect(url_for("cliente.agendar"))
 
-    datas   = Disponibilidade.listar_livres()
-    itens   = tema.carregar_itens()
-    imagens = tema.carregar_imagens()
+    datas       = Disponibilidade.listar_livres()
+    itens       = tema.carregar_itens()
+    imagens     = tema.carregar_imagens()
+    outros_temas= Tema.listar_ativos()
+    temas_json  = [t.to_dict() for t in outros_temas]
 
     if request.method == "POST":
         data_evento      = request.form.get("data_evento", "")
@@ -177,12 +206,12 @@ def agendar_tema(tema_id):
 
         if not data_evento:
             flash("Selecione uma data para continuar.", "erro")
-            return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens)
+            return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens, temas_json=temas_json)
 
         disp = Disponibilidade.buscar_por_data(data_evento)
         if not disp or disp.status != StatusDisponibilidade.LIVRE:
             flash("Esta data não está mais disponível. Escolha outra.", "erro")
-            return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens)
+            return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens, temas_json=temas_json)
 
         # Dados de entrega (obrigatório se escolheu Entrega)
         entrega_horario  = request.form.get("entrega_horario", "").strip()
@@ -192,10 +221,31 @@ def agendar_tema(tema_id):
         if entrega_retirada == EntregaRetirada.ENTREGA:
             if not entrega_horario:
                 flash("Horário de entrega é obrigatório.", "erro")
-                return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens)
+                return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens, temas_json=temas_json)
             if not entrega_endereco:
                 flash("Endereço de entrega é obrigatório.", "erro")
-                return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens)
+                return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens, temas_json=temas_json)
+
+        # Itens extras de outros temas
+        extra_tema_ids  = request.form.getlist("extra_tema_id[]")
+        extra_item_nomes= request.form.getlist("extra_item_nome[]")
+        extra_qtds      = request.form.getlist("extra_qtd[]")
+        extras_validos  = []
+        valor_extras    = 0.0
+        for tid_s, nome_item, qtd_s in zip(extra_tema_ids, extra_item_nomes, extra_qtds):
+            nome_item = nome_item.strip()
+            if not nome_item or not tid_s:
+                continue
+            try:
+                qtd = max(1, min(int(qtd_s or 1), MAX_QTD_ITEM_EXTRA))
+            except (ValueError, TypeError):
+                qtd = 1
+            t_extra = Tema.buscar_por_id(int(tid_s))
+            if t_extra:
+                extras_validos.append((t_extra, nome_item, qtd))
+                valor_extras += qtd * PRECO_ITEM_EXTRA
+
+        valor_total = tema.valor + round(valor_extras, 2)
 
         # Cria agendamento com pagamento Pendente
         ag = Agendamento(
@@ -204,20 +254,32 @@ def agendar_tema(tema_id):
             tema_id          = tema.id,
             tema_nome        = tema.nome,
             data_evento      = data_evento,
-            valor_total      = tema.valor,
+            valor_total      = valor_total,
             entrega_retirada = entrega_retirada,
             observacoes      = observacoes,
         )
-        ag.salvar()  # cria pagamento com status Pendente automaticamente
+        ag.salvar()  # cria pagamento Pendente automaticamente
 
-        # Salva dados de entrega se necessário
+        # Salva itens extras
+        for t_extra, nome_item, qtd in extras_validos:
+            AgendamentoItemExtra(
+                None, ag.id, t_extra.id, t_extra.nome, nome_item, qtd
+            ).salvar()
+
+        # Atualiza valor do pagamento
+        pag = Pagamento.buscar_por_agendamento(ag.id)
+        if pag and valor_total != tema.valor:
+            pag.valor = valor_total
+            pag.salvar()
+
+        # Salva dados de entrega
         if entrega_retirada == EntregaRetirada.ENTREGA:
             Entrega(None, ag.id, entrega_horario, entrega_endereco, entrega_obs or None).salvar()
 
         flash(f"Festa {tema.emoji} reservada para {disp.data_br}! Agora realize o pagamento.", "sucesso")
         return redirect(url_for("cliente.meu_pagamento", ag_id=ag.id))
 
-    return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens)
+    return render_template("cliente/tema_detalhe.html", tema=tema, datas=datas, itens=itens, imagens=imagens, temas_json=temas_json)
 
 
 # ── Seção de Pagamento do agendamento ──
@@ -342,20 +404,179 @@ def confirmacao(ag_id):
     return render_template("cliente/confirmacao.html", ag=ag, pag=pag, tema=tema, entrega=entrega)
 
 
-@cliente_bp.route("/cancelar/<int:ag_id>", methods=["POST"])
+@cliente_bp.route("/cancelar/<int:ag_id>", methods=["GET", "POST"])
 @login_required
 def cancelar(ag_id):
-    ag     = Agendamento.buscar_por_id(ag_id)
-    motivo = request.form.get("motivo", "").strip()
+    """
+    GET  → tela de confirmação de cancelamento com validação de prazo
+    POST → efetiva o cancelamento
+    """
+    from datetime import date, timedelta
+
+    ag = Agendamento.buscar_por_id(ag_id)
     if not ag or ag.cliente_id != session["cliente_id"]:
         flash("Agendamento não encontrado.", "erro")
         return redirect(url_for("cliente.meus_agendamentos"))
-    try:
-        ag.cancelar(motivo)
-        flash("Agendamento cancelado.", "sucesso")
-    except ValueError as e:
-        flash(e.args[0][0], "erro")
-    return redirect(url_for("cliente.meus_agendamentos"))
+
+    if ag.status != StatusAgendamento.PENDENTE:
+        flash(f"Este agendamento está {ag.status} e não pode ser cancelado.", "erro")
+        return redirect(url_for("cliente.meus_agendamentos"))
+
+    data_evento  = date.fromisoformat(ag.data_evento)
+    prazo_limite = data_evento - timedelta(days=2)
+    hoje         = date.today()
+    prazo_ok     = hoje <= prazo_limite
+    dias_restantes = (prazo_limite - hoje).days
+
+    tema    = Tema.buscar_por_id(ag.tema_id)
+    pag     = Pagamento.buscar_por_agendamento(ag_id)
+    entrega = Entrega.buscar_por_agendamento(ag_id)
+    extras  = AgendamentoItemExtra.listar_por_agendamento(ag_id)
+
+    if request.method == "POST":
+        motivo = request.form.get("motivo", "").strip()
+        try:
+            ag.cancelar(motivo)
+            flash(f"Agendamento cancelado com sucesso. {'O reembolso será processado pelo administrador.' if pag and pag.status == 'Pago' else ''}", "sucesso")
+            return redirect(url_for("cliente.meus_agendamentos"))
+        except ValueError as e:
+            flash(e.args[0][0], "erro")
+            return render_template(
+                "cliente/cancelar.html",
+                ag=ag, tema=tema, pag=pag, entrega=entrega, extras=extras,
+                prazo_limite=prazo_limite.strftime("%d/%m/%Y"),
+                prazo_ok=prazo_ok, dias_restantes=dias_restantes,
+            )
+
+    return render_template(
+        "cliente/cancelar.html",
+        ag=ag, tema=tema, pag=pag, entrega=entrega, extras=extras,
+        prazo_limite=prazo_limite.strftime("%d/%m/%Y"),
+        prazo_ok=prazo_ok, dias_restantes=dias_restantes,
+    )
+
+
+# ── Reagendamento ──
+
+@cliente_bp.route("/reagendar/<int:ag_id>", methods=["GET", "POST"])
+@login_required
+def reagendar(ag_id):
+    """
+    GET  → exibe aviso de taxa + datas disponíveis para reagendamento
+    POST → confirma o reagendamento após confirmação do aviso
+    """
+    from datetime import date, timedelta
+
+    ag = Agendamento.buscar_por_id(ag_id)
+    if not ag or ag.cliente_id != session["cliente_id"]:
+        flash("Agendamento não encontrado.", "erro")
+        return redirect(url_for("cliente.meus_agendamentos"))
+
+    if ag.status != StatusAgendamento.PENDENTE:
+        flash(f"Apenas agendamentos Pendentes podem ser reagendados. Status: {ag.status}.", "erro")
+        return redirect(url_for("cliente.meus_agendamentos"))
+
+    # Valida prazo: 1 dia antes do evento atual
+    data_evento   = date.fromisoformat(ag.data_evento)
+    prazo_limite  = data_evento - timedelta(days=1)
+    hoje          = date.today()
+    prazo_ok      = hoje <= prazo_limite
+    dias_restantes = (prazo_limite - hoje).days
+
+    tema    = Tema.buscar_por_id(ag.tema_id)
+    pag     = Pagamento.buscar_por_agendamento(ag_id)
+    historico = Reagendamento.listar_por_agendamento(ag_id)
+    datas   = Disponibilidade.listar_livres()
+    # Exclui a data atual do evento da lista de disponíveis
+    datas   = [d for d in datas if d.data != ag.data_evento]
+
+    if request.method == "POST":
+        # Passo 1: cliente confirmou o aviso?
+        aviso_confirmado = request.form.get("aviso_confirmado") == "1"
+        nova_data        = request.form.get("nova_data", "").strip()
+
+        if not aviso_confirmado:
+            flash("Confirme o aviso sobre a taxa de reagendamento.", "erro")
+            return render_template(
+                "cliente/reagendar.html",
+                ag=ag, tema=tema, pag=pag, historico=historico, datas=datas,
+                prazo_ok=prazo_ok, prazo_limite=prazo_limite.strftime("%d/%m/%Y"),
+                dias_restantes=dias_restantes,
+                taxa=TAXA_REAGENDAMENTO,
+            )
+
+        if not nova_data:
+            flash("Selecione a nova data para o evento.", "erro")
+            return render_template(
+                "cliente/reagendar.html",
+                ag=ag, tema=tema, pag=pag, historico=historico, datas=datas,
+                prazo_ok=prazo_ok, prazo_limite=prazo_limite.strftime("%d/%m/%Y"),
+                dias_restantes=dias_restantes,
+                taxa=TAXA_REAGENDAMENTO,
+            )
+
+        try:
+            reg = ag.reagendar(nova_data)
+            disp_nova = Disponibilidade.buscar_por_data(nova_data)
+            data_nova_br = disp_nova.data_br if disp_nova else nova_data.replace("-", "/")
+            flash(
+                f"Reagendamento confirmado! Nova data: {data_nova_br}. "
+                f"Taxa de R$ {TAXA_REAGENDAMENTO:.2f} aplicada. "
+                f"Valor total atualizado: R$ {ag.valor_total:.2f}.",
+                "sucesso"
+            )
+            return redirect(url_for("cliente.reagendar_confirmacao", ag_id=ag_id))
+        except ValueError as e:
+            flash(e.args[0][0], "erro")
+            return render_template(
+                "cliente/reagendar.html",
+                ag=ag, tema=tema, pag=pag, historico=historico, datas=datas,
+                prazo_ok=prazo_ok, prazo_limite=prazo_limite.strftime("%d/%m/%Y"),
+                dias_restantes=dias_restantes,
+                taxa=TAXA_REAGENDAMENTO,
+            )
+
+    return render_template(
+        "cliente/reagendar.html",
+        ag=ag, tema=tema, pag=pag, historico=historico, datas=datas,
+        prazo_ok=prazo_ok, prazo_limite=prazo_limite.strftime("%d/%m/%Y"),
+        dias_restantes=dias_restantes,
+        taxa=TAXA_REAGENDAMENTO,
+    )
+
+
+@cliente_bp.route("/reagendar/<int:ag_id>/confirmacao")
+@login_required
+def reagendar_confirmacao(ag_id):
+    """Tela de confirmação após reagendamento bem-sucedido."""
+    ag      = Agendamento.buscar_por_id(ag_id)
+    if not ag or ag.cliente_id != session["cliente_id"]:
+        return redirect(url_for("cliente.meus_agendamentos"))
+    tema    = Tema.buscar_por_id(ag.tema_id)
+    pag     = Pagamento.buscar_por_agendamento(ag_id)
+    entrega = Entrega.buscar_por_agendamento(ag_id)
+    historico = Reagendamento.listar_por_agendamento(ag_id)
+    ultimo  = historico[0] if historico else None
+    return render_template(
+        "cliente/reagendar_confirmacao.html",
+        ag=ag, tema=tema, pag=pag, entrega=entrega,
+        historico=historico, ultimo=ultimo,
+        taxa=TAXA_REAGENDAMENTO,
+    )
+
+
+# ── API: itens de um tema (para seleção de extras) ──
+
+@cliente_bp.route("/api/tema/<int:tema_id>/itens")
+@login_required
+def api_tema_itens(tema_id):
+    """Retorna JSON com os itens de um tema para o seletor de extras."""
+    from flask import jsonify
+    t = Tema.buscar_por_id(tema_id)
+    if not t or not t.ativo:
+        return jsonify([])
+    itens = t.carregar_itens()
+    return jsonify([i.to_dict() for i in itens])
 
 
 # ── Meus dados ──
@@ -533,24 +754,163 @@ def agendamento_atualizar(ag_id):
 @admin_bp.route("/agendamento/<int:ag_id>/pagamento", methods=["POST"])
 @admin_required
 def pagamento_atualizar(ag_id):
+    """Atualiza status e forma de pagamento (sem reembolso)."""
     pag = Pagamento.buscar_por_agendamento(ag_id)
     if not pag:
         flash("Pagamento não encontrado.", "erro")
         return redirect(url_for("admin.agendamento_detalhe", ag_id=ag_id))
-    novo_status     = request.form.get("status", pag.status)
-    forma           = request.form.get("forma_pagamento", pag.forma_pagamento)
-    valor_reembolso = float(request.form.get("valor_reembolso", 0) or 0)
-    fp_id           = request.form.get("forma_pagamento_id")
-    motivo          = request.form.get("motivo_reembolso", "")
 
-    if novo_status == StatusPagamento.REEMBOLSADO and pag.status != StatusPagamento.REEMBOLSADO:
-        pag.processar_reembolso(valor_reembolso, int(fp_id) if fp_id else None, motivo)
-    else:
-        pag.status          = novo_status
-        pag.forma_pagamento = forma
-        pag.salvar()
+    novo_status = request.form.get("status", pag.status)
+    forma       = request.form.get("forma_pagamento", pag.forma_pagamento)
+
+    # Não permite marcar como Reembolsado aqui — use a rota de reembolso dedicada
+    if novo_status == StatusPagamento.REEMBOLSADO:
+        flash("Para processar reembolso use o botão específico de reembolso.", "erro")
+        return redirect(url_for("admin.agendamento_detalhe", ag_id=ag_id))
+
+    pag.status          = novo_status
+    pag.forma_pagamento = forma
+    pag.salvar()
     flash("Pagamento atualizado! ✅", "sucesso")
     return redirect(url_for("admin.agendamento_detalhe", ag_id=ag_id))
+
+
+# ── Reembolso ──
+
+@admin_bp.route("/reembolso/<int:ag_id>", methods=["GET", "POST"])
+@admin_required
+def processar_reembolso(ag_id):
+    """
+    Fluxo de reembolso conforme caso de uso:
+    GET  → exibe dados do pagamento e formulário de reembolso
+    POST → processa o reembolso após validações
+    """
+    from database import Database
+    conn = Database.connect()
+    ag = conn.execute(
+        """SELECT a.*, c.nome as cli_nome, c.email, c.telefone, c.cpf
+           FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id
+           WHERE a.id=?""", (ag_id,)
+    ).fetchone()
+    conn.close()
+
+    if not ag:
+        flash("Agendamento não encontrado.", "erro")
+        return redirect(url_for("admin.agendamentos"))
+
+    pag     = Pagamento.buscar_por_agendamento(ag_id)
+    fps     = FormaPagamento.listar_ativas()
+
+    # Passo 7 – Fluxo alternativo: validações antes de exibir
+    erros_validacao = []
+
+    if ag["status"] != StatusAgendamento.CANCELADO:
+        erros_validacao.append(
+            f"O agendamento está com status '{ag['status']}'. "
+            f"Reembolso só é permitido para agendamentos Cancelados."
+        )
+    if not pag:
+        erros_validacao.append("Nenhum pagamento encontrado para este agendamento.")
+    elif pag.status != StatusPagamento.PAGO:
+        erros_validacao.append(
+            f"O pagamento está '{pag.status}'. "
+            f"Reembolso só é permitido para pagamentos com status 'Pago'."
+        )
+    elif pag.valor <= 0:
+        erros_validacao.append("Valor do pagamento inválido (R$ 0,00). Não é possível processar reembolso.")
+
+    if request.method == "POST":
+        if erros_validacao:
+            for msg in erros_validacao:
+                flash(msg, "erro")
+            return redirect(url_for("admin.processar_reembolso", ag_id=ag_id))
+
+        fp_id  = request.form.get("forma_pagamento_id", "").strip()
+        motivo = request.form.get("motivo", "").strip()
+
+        # Validações do formulário
+        erros_form = []
+        if not fp_id:
+            erros_form.append("Selecione a forma de devolução do reembolso.")
+        if not motivo:
+            erros_form.append("Informe o motivo do reembolso.")
+
+        fp = FormaPagamento.buscar_por_id(int(fp_id)) if fp_id else None
+        if fp_id and not fp:
+            erros_form.append("Forma de pagamento inválida.")
+
+        if erros_form:
+            for msg in erros_form:
+                flash(msg, "erro")
+            return render_template("admin/reembolso.html",
+                                   ag=ag, pag=pag, fps=fps,
+                                   erros_validacao=[], fp_nome=None)
+
+        # Passos 6, 8, 9, 10: define valor, processa, atualiza status, registra
+        try:
+            pag.processar_reembolso(
+                valor_reembolso = pag.valor,   # passo 6: valor = total pago
+                forma_pagamento_id = int(fp_id),
+                motivo = motivo,
+            )
+            # Passo 11: mensagem de confirmação
+            flash(
+                f"Reembolso de R$ {pag.valor_reembolso:.2f} processado com sucesso "
+                f"via {fp.nome} para {ag['cli_nome']}! "
+                f"Status atualizado para Reembolsado. ✅",
+                "sucesso"
+            )
+            return redirect(url_for("admin.agendamento_detalhe", ag_id=ag_id))
+
+        except Exception as e:
+            flash(f"Erro ao processar reembolso: {str(e)}", "erro")
+            return render_template("admin/reembolso.html",
+                                   ag=ag, pag=pag, fps=fps,
+                                   erros_validacao=[], fp_nome=None)
+
+    return render_template("admin/reembolso.html",
+                           ag=ag, pag=pag, fps=fps,
+                           erros_validacao=erros_validacao, fp_nome=None)
+
+
+@admin_bp.route("/reembolsos")
+@admin_required
+def reembolsos():
+    """Lista todos os reembolsos processados e pendentes."""
+    from database import Database
+    conn = Database.connect()
+    # Reembolsos processados
+    processados = conn.execute(
+        """SELECT r.*, p.valor as pag_valor, p.forma_pagamento,
+                  a.id as agendamento_id, a.data_evento, a.tema_nome,
+                  c.nome as cli_nome, c.email,
+                  fp.nome as fp_nome
+           FROM reembolsos r
+           JOIN pagamentos p  ON p.id = r.pagamento_id
+           JOIN agendamentos a ON a.id = p.agendamento_id
+           JOIN clientes c    ON c.id = a.cliente_id
+           LEFT JOIN formas_pagamento fp ON fp.id = r.forma_pagamento_id
+           ORDER BY r.processado_em DESC"""
+    ).fetchall()
+
+    # Agendamentos cancelados com pagamento Pago e sem reembolso (pendentes)
+    pendentes = conn.execute(
+        """SELECT a.id as ag_id, a.data_evento, a.tema_nome,
+                  c.nome as cli_nome, c.email,
+                  p.id as pag_id, p.valor as pag_valor, p.forma_pagamento,
+                  p.status as pag_status
+           FROM agendamentos a
+           JOIN clientes c ON c.id=a.cliente_id
+           JOIN pagamentos p ON p.agendamento_id=a.id
+           LEFT JOIN reembolsos r ON r.pagamento_id=p.id
+           WHERE a.status='Cancelado'
+             AND p.status='Pago'
+             AND r.id IS NULL
+           ORDER BY a.data_evento DESC"""
+    ).fetchall()
+    conn.close()
+    return render_template("admin/reembolsos.html",
+                           processados=processados, pendentes=pendentes)
 
 
 # ── Disponibilidades ──
@@ -581,15 +941,25 @@ def disponibilidade_toggle(disp_id):
 @admin_bp.route("/disponibilidade/nova", methods=["POST"])
 @admin_required
 def disponibilidade_nova():
+    """Adiciona nova data disponível. Somente Segunda a Sábado permitidos."""
+    from datetime import date as date_cls
     data = request.form.get("data", "").strip()
     if not data:
         flash("Informe uma data.", "erro")
+        return redirect(url_for("admin.disponibilidades"))
+    try:
+        d_obj = date_cls.fromisoformat(data)
+        if d_obj.weekday() == 6:  # domingo = 6
+            flash("Não é possível cadastrar disponibilidade para Domingo. Cadastre apenas de Segunda a Sábado.", "erro")
+            return redirect(url_for("admin.disponibilidades"))
+    except ValueError:
+        flash("Data inválida.", "erro")
         return redirect(url_for("admin.disponibilidades"))
     conn = __import__("database").Database.connect()
     conn.execute("INSERT OR IGNORE INTO disponibilidades (data, status) VALUES (?, 'Livre')", (data,))
     conn.commit()
     conn.close()
-    flash("Data adicionada!", "sucesso")
+    flash(f"Data {d_obj.strftime('%d/%m/%Y')} adicionada!", "sucesso")
     return redirect(url_for("admin.disponibilidades"))
 
 
@@ -652,9 +1022,10 @@ def tema_novo():
         # Itens
         nomes_itens = request.form.getlist("item_nome[]")
         qtds        = request.form.getlist("item_qtd[]")
+        descs_itens = request.form.getlist("item_desc[]")
         t.sincronizar_itens([
-            {"nome": n, "quantidade": q}
-            for n, q in zip(nomes_itens, qtds) if n.strip()
+            {"nome": n, "quantidade": q, "descricao": d.strip() or None}
+            for n, q, d in zip(nomes_itens, qtds, descs_itens) if n.strip()
         ])
 
         # Imagens (URLs)
@@ -713,11 +1084,12 @@ def tema_itens_salvar(tid):
         flash("Tema não encontrado.", "erro")
         return redirect(url_for("admin.temas"))
 
-    nomes = request.form.getlist("item_nome[]")
-    qtds  = request.form.getlist("item_qtd[]")
+    nomes  = request.form.getlist("item_nome[]")
+    qtds   = request.form.getlist("item_qtd[]")
+    descs  = request.form.getlist("item_desc[]")
     t.sincronizar_itens([
-        {"nome": n.strip(), "quantidade": q}
-        for n, q in zip(nomes, qtds) if n.strip()
+        {"nome": n.strip(), "quantidade": q, "descricao": d.strip() or None}
+        for n, q, d in zip(nomes, qtds, descs) if n.strip()
     ])
     flash("Itens do tema atualizados! ✅", "sucesso")
     return redirect(url_for("admin.tema_detalhe", tid=tid))
@@ -772,17 +1144,48 @@ def pagamentos():
 @admin_bp.route("/pagamentos/novo", methods=["POST"])
 @admin_required
 def pagamento_novo():
+    try:
+        desconto = float(request.form.get("desconto_pct","0").replace(",",".") or 0)
+        desconto = max(0.0, min(100.0, desconto))
+    except ValueError:
+        desconto = 0.0
     fp = FormaPagamento(None,
         request.form.get("nome","").strip(),
         request.form.get("tipo","").strip(),
         request.form.get("descricao","").strip(),
         int(request.form.get("parcelas_max",1) or 1),
+        desconto,
     )
     if not fp.nome or not fp.tipo:
         flash("Nome e tipo são obrigatórios.", "erro")
     else:
         fp.salvar()
         flash(f"Forma '{fp.nome}' cadastrada!", "sucesso")
+    return redirect(url_for("admin.pagamentos"))
+
+
+@admin_bp.route("/pagamentos/<int:fp_id>/editar", methods=["POST"])
+@admin_required
+def pagamento_editar(fp_id):
+    """Edita os dados de uma forma de pagamento existente."""
+    fp = FormaPagamento.buscar_por_id(fp_id)
+    if not fp:
+        flash("Forma de pagamento não encontrada.", "erro")
+        return redirect(url_for("admin.pagamentos"))
+    fp.nome      = request.form.get("nome", fp.nome).strip() or fp.nome
+    fp.tipo      = request.form.get("tipo", fp.tipo).strip() or fp.tipo
+    fp.descricao = request.form.get("descricao", "").strip()
+    try:
+        fp.parcelas_max = max(1, int(request.form.get("parcelas_max", fp.parcelas_max) or 1))
+    except ValueError:
+        pass
+    try:
+        desconto = float(request.form.get("desconto_pct","0").replace(",",".") or 0)
+        fp.desconto_pct = max(0.0, min(100.0, desconto))
+    except ValueError:
+        pass
+    fp.salvar()
+    flash(f"Forma '{fp.nome}' atualizada! ✅", "sucesso")
     return redirect(url_for("admin.pagamentos"))
 
 

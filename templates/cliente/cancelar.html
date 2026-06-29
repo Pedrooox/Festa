@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% block title %}Cancelar Reserva — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.canc-wrap{max-width:620px;margin:0 auto}
+.canc-header{text-align:center;margin-bottom:1.8rem}
+.canc-header .icon{font-size:3.5rem;display:block;margin-bottom:.7rem}
+.canc-header h1{font-size:1.8rem;color:#991b1b;margin-bottom:.3rem}
+.canc-header p{color:#6b7280;font-size:.9rem;line-height:1.6}
+
+/* Card do tema sendo cancelado */
+.tema-resumo{
+    display:flex;align-items:center;gap:1rem;
+    background:#fff;border:1.5px solid #e5e7f0;border-radius:14px;
+    padding:1.2rem 1.4rem;margin-bottom:1.1rem;
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+}
+.tr-emoji{font-size:2.5rem}
+.tr-info{flex:1}
+.tr-nome{font-weight:800;font-size:1.05rem;color:#1a1a2e;margin-bottom:.2rem}
+.tr-meta{font-size:.83rem;color:#6b7280}
+.tr-meta strong{color:#3a0ca3}
+
+/* Prazo */
+.prazo-box{
+    border-radius:11px;padding:1rem 1.2rem;
+    display:flex;align-items:flex-start;gap:.8rem;margin-bottom:1.1rem;
+}
+.prazo-box.ok{background:#d1fae5;border:1.5px solid #6ee7b7;color:#065f46}
+.prazo-box.bloqueado{background:#fee2e2;border:1.5px solid #fca5a5;color:#991b1b}
+.pb-icon{font-size:1.6rem;flex-shrink:0;margin-top:.1rem}
+.pb-titulo{font-weight:700;font-size:.9rem;margin-bottom:.2rem}
+.pb-desc{font-size:.82rem;line-height:1.6;opacity:.9}
+
+/* Pagamento aviso */
+.pag-aviso{
+    background:#fef3c7;border:1.5px solid #fcd34d;
+    border-radius:10px;padding:.9rem 1.1rem;
+    font-size:.85rem;color:#92400e;margin-bottom:1.1rem;
+    display:flex;gap:.6rem;align-items:flex-start;
+}
+
+/* Extras */
+.extras-resumo{
+    background:#f5f0ff;border:1.5px solid #e0d9ff;
+    border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1.1rem;
+}
+.extras-resumo h4{font-size:.85rem;font-weight:700;color:#4c1d95;margin-bottom:.5rem}
+.extra-item{font-size:.82rem;color:#5b21b6;display:flex;justify-content:space-between;margin-bottom:.2rem}
+
+/* Formulário de motivo */
+.motivo-card{background:#fff;border:1.5px solid #e5e7f0;border-radius:14px;padding:1.4rem;margin-bottom:1.1rem}
+.motivo-card h3{font-size:.98rem;font-weight:700;color:#1a1a2e;margin-bottom:.8rem}
+
+/* Botões de confirmação */
+.canc-btns{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
+.btn-confirmar-canc{
+    padding:.85rem 2rem;background:#ef4444;color:#fff;
+    border:none;border-radius:10px;font-family:'Inter',sans-serif;
+    font-size:.95rem;font-weight:700;cursor:pointer;transition:all .18s;
+    box-shadow:0 4px 14px rgba(239,68,68,.3);
+}
+.btn-confirmar-canc:hover{background:#dc2626;transform:translateY(-2px);box-shadow:0 6px 20px rgba(239,68,68,.4)}
+.btn-confirmar-canc:disabled{opacity:.4;cursor:not-allowed;transform:none}
+</style>
+{% endblock %}
+{% block content %}
+<div class="canc-wrap">
+    <div class="canc-header">
+        <span class="icon">⚠️</span>
+        <h1>Cancelar reserva</h1>
+        <p>Leia as informações abaixo com atenção antes de confirmar o cancelamento.</p>
+    </div>
+
+    <!-- Resumo do agendamento -->
+    <div class="tema-resumo">
+        <span class="tr-emoji">{{ tema.emoji if tema else '🎉' }}</span>
+        <div class="tr-info">
+            <div class="tr-nome">{{ ag.tema_nome }}</div>
+            <div class="tr-meta">
+                📅 <strong>{{ ag.data_evento | replace('-','/') }}</strong>
+                · 💰 R$ {{ "%.2f" | format(ag.valor_total) | replace(".",",") }}
+                · {{ ag.entrega_retirada }}
+            </div>
+        </div>
+        <span class="badge badge-{{ ag.status }}">{{ ag.status }}</span>
+    </div>
+
+    <!-- Prazo de cancelamento -->
+    <div class="prazo-box {{ 'ok' if prazo_ok else 'bloqueado' }}">
+        <span class="pb-icon">{{ '✅' if prazo_ok else '🚫' }}</span>
+        <div>
+            {% if prazo_ok %}
+            <div class="pb-titulo">Cancelamento permitido</div>
+            <div class="pb-desc">
+                Você pode cancelar até <strong>{{ prazo_limite }}</strong>
+                (2 dias antes do evento).
+                {% if dias_restantes == 0 %}Hoje é o último dia!
+                {% elif dias_restantes > 0 %}Restam <strong>{{ dias_restantes }} dia{{ 's' if dias_restantes != 1 }}</strong> para cancelar.
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="pb-titulo">Cancelamento não permitido</div>
+            <div class="pb-desc">
+                O prazo para cancelamento era <strong>{{ prazo_limite }}</strong>
+                (2 dias antes do evento em {{ ag.data_evento | replace('-','/') }}).
+                Entre em contato com a administradora para assistência.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Aviso sobre pagamento -->
+    {% if pag and pag.status == 'Pago' %}
+    <div class="pag-aviso">
+        <span style="font-size:1.3rem">💸</span>
+        <div>
+            <strong>Pagamento já realizado ({{ pag.forma_pagamento }}).</strong><br>
+            Ao cancelar, o reembolso de <strong>R$ {{ "%.2f" | format(pag.valor) | replace(".",",") }}</strong>
+            será processado pela administradora.
+        </div>
+    </div>
+    {% elif pag and pag.status == 'Pendente' %}
+    <div class="pag-aviso" style="background:#f0fdf4;border-color:#bbf7d0;color:#065f46">
+        <span style="font-size:1.3rem">✅</span>
+        <div>
+            O pagamento está <strong>pendente</strong>.
+            Ao cancelar, nenhum reembolso será necessário.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Itens extras (se houver) -->
+    {% if extras %}
+    <div class="extras-resumo">
+        <h4>📦 Itens extras incluídos nesta reserva</h4>
+        {% for ex in extras %}
+        <div class="extra-item">
+            <span>{{ ex.item_nome }} <span style="opacity:.7">({{ ex.tema_nome }})</span></span>
+            <span>{{ ex.quantidade }}x · R$ {{ "%.2f" | format(ex.subtotal) | replace(".",",") }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Formulário de cancelamento -->
+    {% if prazo_ok %}
+    <div class="motivo-card">
+        <h3>📝 Informe o motivo do cancelamento</h3>
+        <form method="POST" id="form-canc">
+            <div class="form-group">
+                <label>Motivo <span style="color:#e11d48">*</span></label>
+                <textarea name="motivo" id="motivo" required
+                          placeholder="Descreva o motivo do cancelamento (ex: imprevisto, mudança de data, problema pessoal...)"
+                          style="min-height:100px"></textarea>
+                <p style="font-size:.75rem;color:#9ca3af;margin-top:.3rem">Campo obrigatório — mínimo 10 caracteres.</p>
+            </div>
+
+            <!-- Checkbox de confirmação -->
+            <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;margin-bottom:1.1rem;font-size:.86rem;color:#374151">
+                <input type="checkbox" id="confirma-check" style="width:16px;height:16px;margin-top:.15rem;flex-shrink:0;accent-color:#e11d48">
+                <span>
+                    Confirmo que desejo cancelar esta reserva e estou ciente de que
+                    <strong>a data ficará disponível para outros clientes</strong>.
+                </span>
+            </label>
+
+            <div class="canc-btns">
+                <a href="{{ url_for('cliente.meus_agendamentos') }}" class="btn btn-secondary">
+                    ← Voltar sem cancelar
+                </a>
+                <button type="submit" class="btn-confirmar-canc" id="btn-canc" disabled>
+                    ❌ Confirmar cancelamento
+                </button>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="canc-btns">
+        <a href="{{ url_for('cliente.meus_agendamentos') }}" class="btn btn-primary">
+            ← Voltar para meus agendamentos
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+const motivo   = document.getElementById('motivo');
+const check    = document.getElementById('confirma-check');
+const btnCanc  = document.getElementById('btn-canc');
+
+function validarBotao() {
+    if (!btnCanc) return;
+    const motivoOk = motivo && motivo.value.trim().length >= 10;
+    const checkOk  = check && check.checked;
+    btnCanc.disabled = !(motivoOk && checkOk);
+}
+
+if (motivo)  motivo.addEventListener('input', validarBotao);
+if (check)   check.addEventListener('change', validarBotao);
+
+// Confirmação final antes de submeter
+const formCanc = document.getElementById('form-canc');
+if (formCanc) {
+    formCanc.addEventListener('submit', function(e) {
+        if (!confirm('Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.')) {
+            e.preventDefault();
+        }
+    });
+}
+</script>
+{% endblock %}

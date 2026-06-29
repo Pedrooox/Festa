@@ -1,0 +1,123 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Reembolsos{% endblock %}
+{% block page_title %}Reembolsos{% endblock %}
+
+{% block content %}
+
+<!-- Pendentes de reembolso -->
+{% if pendentes %}
+<div class="card mb-6" style="border-left: 4px solid var(--rosa);">
+    <div class="card-title" style="color:var(--rosa);">
+        ⏳ Aguardando Reembolso ({{ pendentes | length }})
+        <span class="text-muted text-sm" style="font-weight:400;margin-left:.5rem">
+            Cancelados com pagamento Pago e sem reembolso
+        </span>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#Ag</th>
+                    <th>Data do evento</th>
+                    <th>Tema</th>
+                    <th>Cliente</th>
+                    <th>Valor pago</th>
+                    <th>Forma de pag.</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in pendentes %}
+            <tr>
+                <td class="text-muted text-sm">#{{ p.ag_id }}</td>
+                <td class="font-bold text-sm">{{ p.data_evento | replace('-','/') }}</td>
+                <td class="text-sm">{{ p.tema_nome }}</td>
+                <td>
+                    <div class="font-bold text-sm">{{ p.cli_nome }}</div>
+                    <div class="text-muted" style="font-size:.74rem">{{ p.email }}</div>
+                </td>
+                <td class="font-bold" style="color:var(--verde)">
+                    R$ {{ "%.2f" | format(p.pag_valor) | replace(".",",") }}
+                </td>
+                <td class="text-sm text-muted">{{ p.forma_pagamento or '—' }}</td>
+                <td>
+                    <a href="{{ url_for('admin.processar_reembolso', ag_id=p.ag_id) }}"
+                       class="btn btn-success btn-xs">
+                        💸 Processar →
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card mb-4" style="border-left:4px solid var(--verde)">
+    <div class="flex items-center gap-3" style="padding:.2rem">
+        <span style="font-size:1.5rem">✅</span>
+        <div>
+            <div class="font-bold text-sm">Nenhum reembolso pendente</div>
+            <div class="text-muted text-sm">Todos os cancelamentos com pagamento foram reembolsados.</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Histórico de reembolsos processados -->
+<div class="card">
+    <div class="card-title">
+        ✅ Histórico de Reembolsos Processados
+        <span class="text-muted text-sm" style="font-weight:400;margin-left:.5rem">({{ processados | length }})</span>
+    </div>
+
+    {% if processados %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Ag.</th>
+                    <th>Data evento</th>
+                    <th>Tema</th>
+                    <th>Cliente</th>
+                    <th>Valor reembolso</th>
+                    <th>Forma devolução</th>
+                    <th>Processado em</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in processados %}
+            <tr>
+                <td class="text-muted text-sm">#{{ r.id }}</td>
+                <td class="text-muted text-sm">#{{ r.agendamento_id }}</td>
+                <td class="text-sm">{{ r.data_evento | replace('-','/') }}</td>
+                <td class="text-sm">{{ r.tema_nome }}</td>
+                <td>
+                    <div class="font-bold text-sm">{{ r.cli_nome }}</div>
+                    <div class="text-muted" style="font-size:.73rem">{{ r.email }}</div>
+                </td>
+                <td class="font-bold text-sm" style="color:var(--verde)">
+                    R$ {{ "%.2f" | format(r.valor) | replace(".",",") }}
+                </td>
+                <td class="text-sm">{{ r.fp_nome or '—' }}</td>
+                <td class="text-muted text-sm">
+                    {{ r.processado_em[:16] | replace('T',' ') if r.processado_em else '—' }}
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.agendamento_detalhe', ag_id=r.agendamento_id) }}"
+                       class="btn btn-secondary btn-xs">Ver ag.</a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:2.5rem;color:var(--mu)">
+        💸 Nenhum reembolso processado ainda.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

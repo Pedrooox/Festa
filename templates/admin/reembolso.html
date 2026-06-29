@@ -1,0 +1,260 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Processar Reembolso{% endblock %}
+{% block page_title %}Processar Reembolso{% endblock %}
+
+{% block extra_style %}
+<style>
+.reemb-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1.2rem; align-items: start; }
+
+/* Cabeçalho */
+.ag-header {
+    background: linear-gradient(135deg, #fef2f2, #fff5f5);
+    border: 1.5px solid #fca5a5;
+    border-radius: 12px;
+    padding: 1.1rem 1.3rem;
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.2rem;
+}
+.ah-emoji { font-size: 2.2rem; }
+.ah-nome  { font-weight: 800; font-size: 1rem; color: var(--tx); margin-bottom: .2rem; }
+.ah-meta  { font-size: .82rem; color: var(--mu); }
+
+/* Erros de validação — Fluxo Alternativo 1 */
+.validacao-erros {
+    background: #fee2e2; border: 1.5px solid #fca5a5;
+    border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1.1rem;
+}
+.validacao-erros h4 { color: #991b1b; font-size: .9rem; font-weight: 700; margin-bottom: .5rem; }
+.validacao-erros ul { padding-left: 1.2rem; }
+.validacao-erros li { font-size: .85rem; color: #b91c1c; margin-bottom: .3rem; line-height: 1.5; }
+.encerrado-box {
+    background: #f8fafc; border: 1.5px solid var(--borda);
+    border-radius: 10px; padding: 1.3rem; text-align: center;
+    color: var(--mu); font-size: .9rem; margin-bottom: 1rem;
+}
+.encerrado-box p { margin: .5rem 0; }
+.encerrado-box strong { color: var(--tx); }
+
+/* Dados do pagamento — passo 4 */
+.pag-dados {
+    background: #fff;
+    border: 1.5px solid var(--borda);
+    border-radius: 12px;
+    padding: 1.3rem;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.pd-titulo { font-weight: 700; font-size: .95rem; color: var(--tx); margin-bottom: 1rem; padding-bottom: .6rem; border-bottom: 1px solid var(--borda); display: flex; align-items: center; gap: .45rem; }
+.pd-row { display: flex; justify-content: space-between; align-items: center; padding: .5rem 0; border-bottom: 1px solid #f8fafc; font-size: .88rem; }
+.pd-row:last-child { border-bottom: none; }
+.pd-l { color: var(--mu); }
+.pd-v { font-weight: 600; color: var(--tx); }
+.pd-v.valor-destaque { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 900; color: var(--verde); }
+
+/* Valor do reembolso — passo 6 */
+.valor-reemb-box {
+    background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+    border: 1.5px solid #6ee7b7;
+    border-radius: 11px;
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 1.1rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: .8rem;
+}
+.vrb-label { font-size: .82rem; font-weight: 600; color: #047857; }
+.vrb-valor { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; color: #065f46; }
+
+/* Formulário de reembolso — passo 5 */
+.form-reemb {
+    background: #fff; border: 1.5px solid var(--borda);
+    border-radius: 12px; padding: 1.3rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.fp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin-bottom: 1rem; }
+.fp-r { display: none; }
+.fp-lbl {
+    border: 2px solid var(--borda); border-radius: 8px;
+    padding: .65rem .75rem; cursor: pointer;
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .83rem; font-weight: 500; color: var(--tx);
+    transition: all .14s;
+}
+.fp-lbl:hover { border-color: var(--verde); background: #f0fdf4; }
+.fp-r:checked + .fp-lbl {
+    border-color: var(--verde);
+    background: linear-gradient(135deg, rgba(5,150,105,.07), rgba(5,150,105,.04));
+    color: var(--verde); font-weight: 700;
+}
+.fp-icon { font-size: 1.1rem; }
+
+/* Resumo lateral */
+.resumo-card {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border: 1.5px solid #bbf7d0;
+    border-radius: 12px; padding: 1.2rem;
+    position: sticky; top: 70px;
+}
+.rc-titulo { font-weight: 800; font-size: .88rem; color: var(--verde); margin-bottom: .8rem; }
+.rc-row { display: flex; justify-content: space-between; font-size: .84rem; margin-bottom: .4rem; }
+.rc-l { color: var(--mu); }
+.rc-v { font-weight: 600; color: var(--tx); }
+.rc-sep { border: none; border-top: 1px solid #bbf7d0; margin: .6rem 0; }
+.rc-total { display: flex; justify-content: space-between; }
+.rc-total-l { font-weight: 700; color: var(--tx); font-size: .9rem; }
+.rc-total-v { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 900; color: var(--verde); }
+
+.btn-processar {
+    width: 100%; padding: .9rem;
+    background: linear-gradient(135deg, #059669, #047857);
+    color: #fff; border: none; border-radius: 9px;
+    font-family: 'Inter', sans-serif; font-size: .95rem; font-weight: 700;
+    cursor: pointer; margin-top: .8rem; transition: all .15s;
+    box-shadow: 0 4px 14px rgba(5,150,105,.3);
+}
+.btn-processar:hover { opacity: .92; transform: translateY(-2px); }
+
+{% set tipo_emoji = {'pix':'⚡','debito':'💳','credito':'💳','dinheiro':'💵','ted':'🏦','outro':'💰'} %}
+
+@media (max-width: 760px) {
+    .reemb-layout { grid-template-columns: 1fr; }
+    .resumo-card { position: static; }
+    .fp-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set tipo_emoji = {'pix':'⚡','debito':'💳','credito':'💳','dinheiro':'💵','ted':'🏦','outro':'💰'} %}
+
+<div class="mb-4 flex gap-2 items-center">
+    <a href="{{ url_for('admin.agendamento_detalhe', ag_id=ag.id) }}" class="btn btn-secondary btn-sm">← Agendamento #{{ ag.id }}</a>
+    <a href="{{ url_for('admin.reembolsos') }}" class="btn btn-secondary btn-sm">💸 Lista de reembolsos</a>
+</div>
+
+<!-- Cabeçalho do agendamento -->
+<div class="ag-header">
+    <span class="ah-emoji">🎉</span>
+    <div style="flex:1">
+        <div class="ah-nome">{{ ag.tema_nome }}</div>
+        <div class="ah-meta">
+            📅 {{ ag.data_evento | replace('-','/') }}
+            · 👤 {{ ag.cli_nome }}
+            · {{ ag.email }}
+        </div>
+    </div>
+    <span class="badge badge-{{ ag.status }}">{{ ag.status }}</span>
+</div>
+
+<!-- Fluxo Alternativo 1: erros de validação → operação encerrada -->
+{% if erros_validacao %}
+<div class="validacao-erros">
+    <h4>⚠️ Inconsistência nos dados — Reembolso não pode ser processado</h4>
+    <ul>
+        {% for erro in erros_validacao %}
+        <li>{{ erro }}</li>
+        {% endfor %}
+    </ul>
+</div>
+<div class="encerrado-box">
+    <p>🚫 <strong>Operação encerrada.</strong></p>
+    <p>Corrija as inconsistências acima antes de tentar processar o reembolso.</p>
+    <a href="{{ url_for('admin.agendamento_detalhe', ag_id=ag.id) }}" class="btn btn-secondary btn-sm" style="margin-top:.8rem">
+        Voltar ao agendamento
+    </a>
+</div>
+{% else %}
+
+<div class="reemb-layout">
+
+    <!-- Coluna principal -->
+    <div>
+        <!-- Passo 4: dados do pagamento -->
+        {% if pag %}
+        <div class="pag-dados">
+            <div class="pd-titulo">💳 Dados do Pagamento</div>
+            <div class="pd-row"><span class="pd-l">ID do pagamento</span><span class="pd-v">#{{ pag.id }}</span></div>
+            <div class="pd-row"><span class="pd-l">Status atual</span><span class="pd-v"><span class="badge badge-{{ pag.status }}">{{ pag.status }}</span></span></div>
+            <div class="pd-row"><span class="pd-l">Forma de pagamento</span><span class="pd-v">{{ pag.forma_pagamento or '—' }}</span></div>
+            <div class="pd-row"><span class="pd-l">Cliente</span><span class="pd-v">{{ ag.cli_nome }}</span></div>
+            <div class="pd-row"><span class="pd-l">Contato</span><span class="pd-v text-sm">{{ ag.email }}<br>{{ ag.telefone or '—' }}</span></div>
+            <div class="pd-row" style="margin-top:.4rem">
+                <span class="pd-l">Valor pago</span>
+                <span class="pd-v valor-destaque">R$ {{ "%.2f" | format(pag.valor) | replace(".",",") }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Passo 6: valor do reembolso (automático = valor pago) -->
+        <div class="valor-reemb-box">
+            <div>
+                <div class="vrb-label">💰 Valor a ser reembolsado</div>
+                <small style="font-size:.75rem;color:#047857;opacity:.85">Definido automaticamente como o valor total pago</small>
+            </div>
+            <div class="vrb-valor">R$ {{ "%.2f" | format(pag.valor) | replace(".",",") }}</div>
+        </div>
+
+        <!-- Passo 5: formulário de reembolso -->
+        <div class="form-reemb">
+            <div style="font-weight:700;font-size:.92rem;margin-bottom:.9rem">🔄 Processar devolução</div>
+            <form method="POST">
+                <div class="form-group" style="margin-bottom:.9rem">
+                    <label class="lbl">Forma de devolução ao cliente <span style="color:var(--rosa)">*</span></label>
+                    <div class="fp-grid">
+                        {% for fp in fps %}
+                        <div>
+                            <input type="radio" name="forma_pagamento_id" value="{{ fp.id }}"
+                                   id="fp{{ fp.id }}" class="fp-r" required>
+                            <label for="fp{{ fp.id }}" class="fp-lbl">
+                                <span class="fp-icon">{{ tipo_emoji.get(fp.tipo,'💰') }}</span>
+                                {{ fp.nome }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:1rem">
+                    <label class="lbl">Motivo do reembolso <span style="color:var(--rosa)">*</span></label>
+                    <textarea name="motivo" required
+                              placeholder="Ex: Cancelamento realizado pelo cliente em 20/06/2026. Devolução conforme política da empresa..."
+                              style="min-height:90px"></textarea>
+                </div>
+
+                <!-- Checkbox de confirmação -->
+                <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;margin-bottom:.9rem;font-size:.84rem;color:#374151;">
+                    <input type="checkbox" id="confirma" required
+                           style="width:15px;height:15px;margin-top:.15rem;flex-shrink:0;accent-color:var(--verde)">
+                    <span>
+                        Confirmo que o valor de <strong>R$ {{ "%.2f" | format(pag.valor) | replace(".",",") }}</strong>
+                        será devolvido ao cliente <strong>{{ ag.cli_nome }}</strong>
+                        e esta operação ficará registrada no sistema.
+                    </span>
+                </label>
+
+                <button type="submit" class="btn-processar">
+                    ✅ Processar reembolso de R$ {{ "%.2f" | format(pag.valor) | replace(".",",") }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumo lateral -->
+    <div class="resumo-card">
+        <div class="rc-titulo">📋 Resumo do Reembolso</div>
+        <div class="rc-row"><span class="rc-l">Agendamento</span><span class="rc-v">#{{ ag.id }}</span></div>
+        <div class="rc-row"><span class="rc-l">Tema</span><span class="rc-v">{{ ag.tema_nome }}</span></div>
+        <div class="rc-row"><span class="rc-l">Data do evento</span><span class="rc-v">{{ ag.data_evento | replace('-','/') }}</span></div>
+        <div class="rc-row"><span class="rc-l">Cliente</span><span class="rc-v">{{ ag.cli_nome }}</span></div>
+        <div class="rc-row"><span class="rc-l">CPF</span><span class="rc-v text-sm">{{ ag.cpf }}</span></div>
+        <hr class="rc-sep">
+        <div class="rc-row"><span class="rc-l">Valor pago</span><span class="rc-v">R$ {{ "%.2f" | format(pag.valor) | replace(".",",") }}</span></div>
+        <div class="rc-row"><span class="rc-l">Pago via</span><span class="rc-v">{{ pag.forma_pagamento or '—' }}</span></div>
+        <hr class="rc-sep">
+        <div class="rc-total">
+            <span class="rc-total-l">A devolver</span>
+            <span class="rc-total-v">R$ {{ "%.2f" | format(pag.valor) | replace(".",",") }}</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

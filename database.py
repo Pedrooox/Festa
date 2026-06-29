@@ -52,6 +52,7 @@ class Database:
                 tema_id    INTEGER NOT NULL,
                 nome       TEXT    NOT NULL,
                 quantidade INTEGER NOT NULL DEFAULT 1,
+                descricao  TEXT,
                 FOREIGN KEY (tema_id) REFERENCES temas(id) ON DELETE CASCADE
             );
 
@@ -97,13 +98,36 @@ class Database:
             );
 
             CREATE TABLE IF NOT EXISTS formas_pagamento (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                nome         TEXT    NOT NULL,
-                tipo         TEXT    NOT NULL,
-                descricao    TEXT,
-                parcelas_max INTEGER DEFAULT 1,
-                ativo        INTEGER DEFAULT 1,
-                criado_em    DATETIME DEFAULT CURRENT_TIMESTAMP
+                id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome              TEXT    NOT NULL,
+                tipo              TEXT    NOT NULL,
+                descricao         TEXT,
+                parcelas_max      INTEGER DEFAULT 1,
+                desconto_pct      REAL    DEFAULT 0.0,
+                ativo             INTEGER DEFAULT 1,
+                criado_em         DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS reagendamentos (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                agendamento_id  INTEGER NOT NULL,
+                data_anterior   DATE    NOT NULL,
+                nova_data       DATE    NOT NULL,
+                taxa            REAL    NOT NULL DEFAULT 2.30,
+                reagendado_em   DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS agendamento_itens_extras (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                agendamento_id INTEGER NOT NULL,
+                tema_id        INTEGER NOT NULL,
+                tema_nome      TEXT    NOT NULL,
+                item_nome      TEXT    NOT NULL,
+                quantidade     INTEGER NOT NULL DEFAULT 1,
+                preco_unitario REAL    NOT NULL DEFAULT 3.50,
+                FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id),
+                FOREIGN KEY (tema_id)        REFERENCES temas(id)
             );
 
             CREATE TABLE IF NOT EXISTS entregas (
@@ -217,23 +241,25 @@ class Database:
     def _seed_formas_pagamento(cls, conn):
         if conn.execute("SELECT COUNT(*) FROM formas_pagamento").fetchone()[0] == 0:
             fps = [
-                ("PIX",               "pix",      "Pagamento instantâneo via PIX",          1),
-                ("Cartão de Débito",  "debito",   "Cartão de débito — aprovação imediata",  1),
-                ("Cartão de Crédito", "credito",  "Cartão de crédito parcelado",            12),
-                ("Dinheiro",          "dinheiro", "Pagamento em espécie",                   1),
-                ("Transferência",     "ted",      "TED ou DOC bancário",                    1),
+                # (nome, tipo, descricao, parcelas_max, desconto_pct)
+                ("PIX",               "pix",      "Pagamento instantâneo via PIX — sem taxas",       1,  5.0),
+                ("Cartão de Débito",  "debito",   "Cartão de débito — aprovação imediata",           1,  0.0),
+                ("Cartão de Crédito", "credito",  "Cartão de crédito — parcelamento disponível",    12,  0.0),
+                ("Dinheiro",          "dinheiro", "Pagamento em espécie",                            1,  3.0),
+                ("Transferência",     "ted",      "TED ou DOC bancário",                             1,  0.0),
             ]
             conn.executemany(
-                "INSERT INTO formas_pagamento (nome, tipo, descricao, parcelas_max) VALUES (?,?,?,?)", fps
+                "INSERT INTO formas_pagamento (nome, tipo, descricao, parcelas_max, desconto_pct) VALUES (?,?,?,?,?)", fps
             )
 
     @classmethod
     def _seed_disponibilidades(cls, conn):
+        """Gera disponibilidades de Segunda a Sábado nos próximos 90 dias."""
         from datetime import date, timedelta
         hoje = date.today()
         for i in range(1, 91):
             d = hoje + timedelta(days=i)
-            if d.weekday() in (4, 5, 6):
+            if d.weekday() in (0, 1, 2, 3, 4, 5):  # Seg=0 a Sáb=5 (excluindo Dom=6)
                 conn.execute(
                     "INSERT OR IGNORE INTO disponibilidades (data, status) VALUES (?, 'Livre')",
                     (d.isoformat(),),

@@ -8,18 +8,28 @@
     <form method="POST" action="{{ url_for('admin.disponibilidade_nova') }}">
       <div class="form-group" style="margin-bottom:.8rem">
         <label class="lbl">Data</label>
-        <input type="date" name="data" required>
+        <input type="date" name="data" required id="data-input">
       </div>
       <button type="submit" class="btn btn-primary btn-sm" style="width:100%">📅 Adicionar data</button>
+    <p id="aviso-dom" style="display:none;font-size:.75rem;color:#e11d48;margin-top:.3rem">⚠️ Domingo não é permitido. Escolha uma data de Segunda a Sábado.</p>
+    <script>
+    document.getElementById('data-input').addEventListener('change', function() {
+        const d = new Date(this.value + 'T12:00:00');
+        const dom = d.getDay() === 0; // 0 = domingo no JS
+        document.getElementById('aviso-dom').style.display = dom ? 'block' : 'none';
+        this.setCustomValidity(dom ? 'Domingo não é permitido.' : '');
+    });
+    </script>
     </form>
   </div>
   <div class="card" style="background:#eff6ff;border-color:#bfdbfe">
     <div class="card-title">💡 Sobre disponibilidades</div>
     <div class="text-muted text-sm" style="line-height:1.7">
       <p>As datas aqui são as que aparecem para os clientes ao agendar.</p>
-      <p style="margin-top:.5rem">🟢 <strong>Livre</strong> — aparece para o cliente agendar</p>
+      <p style="margin-top:.4rem">📅 <strong>Dias permitidos:</strong> Segunda a Sábado (Domingo não é permitido)</p>
+      <p style="margin-top:.4rem">🟢 <strong>Livre</strong> — aparece para o cliente agendar</p>
       <p>🔴 <strong>Ocupado</strong> — já reservada ou bloqueada manualmente</p>
-      <p style="margin-top:.5rem">Ao cancelar um agendamento a data volta para Livre automaticamente.</p>
+      <p style="margin-top:.4rem">Ao cancelar um agendamento a data volta para Livre automaticamente.</p>
     </div>
   </div>
 </div>

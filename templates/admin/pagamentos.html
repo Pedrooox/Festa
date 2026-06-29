@@ -1,56 +1,223 @@
 {% extends 'admin/base_admin.html' %}
 {% block title %}Formas de Pagamento{% endblock %}
 {% block page_title %}Formas de Pagamento{% endblock %}
-{% block extra_style %}<style>.tipo-map{pix:'⚡',debito:'💳',credito:'💳',dinheiro:'💵',ted:'🏦'}</style>{% endblock %}
+
+{% block extra_style %}
+<style>
+.fp-card {
+    background: #fff;
+    border: 1.5px solid var(--borda);
+    border-radius: 11px;
+    padding: 1.1rem 1.2rem;
+    margin-bottom: .8rem;
+    transition: box-shadow .15s;
+}
+.fp-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.07); }
+.fp-card.inativo { opacity: .6; }
+.fp-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .8rem;
+    flex-wrap: wrap;
+}
+.fp-nome { font-weight: 800; font-size: .97rem; color: var(--tx); margin-bottom: .15rem; display: flex; align-items: center; gap: .5rem; }
+.fp-desc { font-size: .8rem; color: var(--mu); }
+.fp-pills { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .5rem; }
+.fp-pill {
+    font-size: .73rem; font-weight: 600;
+    padding: .2rem .6rem; border-radius: 20px;
+    display: inline-flex; align-items: center; gap: .25rem;
+}
+.fp-pill-parcelas { background: #dbeafe; color: #1d4ed8; }
+.fp-pill-desconto { background: #d1fae5; color: #065f46; }
+.fp-pill-tipo { background: #f1f5f9; color: var(--mu); }
+.fp-actions { display: flex; gap: .4rem; flex-wrap: wrap; flex-shrink: 0; }
+
+/* Modal de edição */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.42); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 14px; padding: 1.7rem; max-width: 500px; width: 93%; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.modal h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-{% set te = {'pix':'⚡','debito':'💳','credito':'💳','dinheiro':'💵','ted':'🏦'} %}
+{% set tipo_emoji = {'pix':'⚡','debito':'💳','credito':'💳','dinheiro':'💵','ted':'🏦','outro':'💰'} %}
+
 <div class="grid-2 mb-6">
+  <!-- Cadastrar nova forma -->
   <div class="card">
-    <div class="card-title">➕ Nova forma de pagamento</div>
+    <div class="card-title">➕ Cadastrar nova forma de pagamento</div>
     <form method="POST" action="{{ url_for('admin.pagamento_novo') }}">
       <div class="form-row">
-        <div class="form-group"><label class="lbl">Nome *</label><input type="text" name="nome" placeholder="Ex: Cartão de Crédito" required></div>
-        <div class="form-group"><label class="lbl">Tipo *</label>
-          <select name="tipo" required><option value="">Selecione...</option><option value="pix">PIX</option><option value="debito">Débito</option><option value="credito">Crédito</option><option value="dinheiro">Dinheiro</option><option value="ted">TED/DOC</option><option value="outro">Outro</option></select>
+        <div class="form-group">
+          <label class="lbl">Nome *</label>
+          <input type="text" name="nome" placeholder="Ex: Cartão de Crédito" required>
         </div>
-        <div class="form-group"><label class="lbl">Descrição</label><input type="text" name="descricao" placeholder="Detalhe opcional"></div>
-        <div class="form-group"><label class="lbl">Máx. parcelas</label><input type="number" name="parcelas_max" value="1" min="1" max="48"></div>
+        <div class="form-group">
+          <label class="lbl">Tipo *</label>
+          <select name="tipo" required id="tipo-novo" onchange="toggleParcelasNovo(this.value)">
+            <option value="">Selecione...</option>
+            <option value="pix">⚡ PIX</option>
+            <option value="debito">💳 Débito</option>
+            <option value="credito">💳 Crédito</option>
+            <option value="dinheiro">💵 Dinheiro</option>
+            <option value="ted">🏦 TED/DOC</option>
+            <option value="outro">💰 Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="lbl">Descrição</label>
+          <input type="text" name="descricao" placeholder="Detalhe opcional">
+        </div>
+        <div class="form-row form-row-2">
+          <div class="form-group" id="parcelas-novo" style="display:none">
+            <label class="lbl">Máx. parcelas (crédito)</label>
+            <input type="number" name="parcelas_max" value="1" min="1" max="48">
+          </div>
+          <div class="form-group">
+            <label class="lbl">Desconto (%)</label>
+            <input type="text" name="desconto_pct" value="0" placeholder="Ex: 5 (para 5%)">
+          </div>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary" style="margin-top:.7rem;width:100%">💳 Cadastrar</button>
     </form>
   </div>
+
+  <!-- Dicas -->
   <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
     <div class="card-title">💡 Como funciona</div>
-    <div class="text-muted text-sm" style="line-height:1.7">As formas cadastradas aqui ficam disponíveis ao processar reembolsos e atualizar pagamentos no detalhe de cada agendamento.</div>
+    <div style="font-size:.85rem;color:var(--mu);display:flex;flex-direction:column;gap:.6rem;line-height:1.6">
+      <p>💳 <strong>Parcelas</strong> — disponível apenas para tipo Crédito. Defina o número máximo de vezes que o cliente pode parcelar.</p>
+      <p>🏷️ <strong>Desconto</strong> — percentual de desconto concedido ao usar esta forma. Ex: PIX com 5% off.</p>
+      <p>🔇 <strong>Inativar</strong> — oculta a forma de novos pagamentos sem excluir o histórico.</p>
+    </div>
   </div>
 </div>
+
+<!-- Lista -->
 <div class="card">
-  <div class="card-title">💳 Formas cadastradas</div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Nome</th><th>Tipo</th><th>Descrição</th><th>Parcelas</th><th>Status</th><th>Ações</th></tr></thead>
-      <tbody>
-      {% for fp in fps %}
-      <tr>
-        <td class="font-bold text-sm">{{ te.get(fp.tipo,'💰') }} {{ fp.nome }}</td>
-        <td><span class="badge badge-{{ 'ativo' if fp.ativo else 'inativo' }}">{{ fp.tipo }}</span></td>
-        <td class="text-muted text-sm">{{ fp.descricao or '—' }}</td>
-        <td class="text-sm">{{ 'até '+fp.parcelas_max|string+'x' if fp.parcelas_max > 1 else 'à vista' }}</td>
-        <td><span class="badge {{ 'badge-ativo' if fp.ativo else 'badge-inativo' }}">{{ 'Ativo' if fp.ativo else 'Inativo' }}</span></td>
-        <td>
-          <div class="flex gap-2">
-            <form method="POST" action="{{ url_for('admin.pagamento_toggle',fp_id=fp.id) }}" style="display:inline">
-              <button class="btn btn-xs {{ 'btn-secondary' if fp.ativo else 'btn-success' }}">{{ '🔇 Desativar' if fp.ativo else '✅ Ativar' }}</button>
-            </form>
-            <form method="POST" action="{{ url_for('admin.pagamento_excluir',fp_id=fp.id) }}" onsubmit="return confirm('Excluir?')" style="display:inline">
-              <button class="btn btn-danger btn-xs">🗑️</button>
-            </form>
+  <div class="card-title flex justify-between items-center" style="flex-wrap:wrap;gap:.5rem">
+    <span>💳 Formas cadastradas ({{ fps | length }})</span>
+    <span class="text-muted text-sm">
+      {{ fps | selectattr('ativo', 'equalto', 1) | list | length }} ativas ·
+      {{ fps | selectattr('ativo', 'equalto', 0) | list | length }} inativas
+    </span>
+  </div>
+
+  {% for fp in fps %}
+  <div class="fp-card {{ 'inativo' if not fp.ativo }}">
+    <div class="fp-head">
+      <div>
+        <div class="fp-nome">
+          {{ tipo_emoji.get(fp.tipo, '💰') }} {{ fp.nome }}
+          {% if not fp.ativo %}<span class="badge badge-inativo">Inativo</span>{% endif %}
+        </div>
+        {% if fp.descricao %}<div class="fp-desc">{{ fp.descricao }}</div>{% endif %}
+        <div class="fp-pills">
+          <span class="fp-pill fp-pill-tipo">{{ fp.tipo }}</span>
+          {% if fp.tipo == 'credito' and fp.parcelas_max > 1 %}
+          <span class="fp-pill fp-pill-parcelas">💳 até {{ fp.parcelas_max }}x</span>
+          {% endif %}
+          {% if fp.desconto_pct > 0 %}
+          <span class="fp-pill fp-pill-desconto">🏷️ {{ "%.1f" | format(fp.desconto_pct) | replace(".",",") }}% desconto</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="fp-actions">
+        <button class="btn btn-secondary btn-xs"
+                onclick="abrirEditar({{ fp.id }}, '{{ fp.nome }}', '{{ fp.tipo }}',
+                         '{{ fp.descricao or '' }}', {{ fp.parcelas_max }}, {{ fp.desconto_pct }})">
+          ✏️ Editar
+        </button>
+        <form method="POST" action="{{ url_for('admin.pagamento_toggle', fp_id=fp.id) }}" style="display:inline">
+          <button class="btn btn-xs {{ 'btn-secondary' if fp.ativo else 'btn-success' }}">
+            {{ '🔇 Desativar' if fp.ativo else '✅ Ativar' }}
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('admin.pagamento_excluir', fp_id=fp.id) }}"
+              onsubmit="return confirm('Excluir \'{{ fp.nome }}\'?')" style="display:inline">
+          <button class="btn btn-danger btn-xs">🗑️</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:2rem;color:var(--mu)">💳 Nenhuma forma cadastrada ainda.</div>
+  {% endfor %}
+</div>
+
+<!-- Modal de edição -->
+<div class="modal-overlay" id="mEdit">
+  <div class="modal">
+    <h3>✏️ Editar forma de pagamento</h3>
+    <form method="POST" id="fEdit">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="lbl">Nome *</label>
+          <input type="text" name="nome" id="eNome" required>
+        </div>
+        <div class="form-group">
+          <label class="lbl">Tipo *</label>
+          <select name="tipo" id="eTipo" required onchange="toggleParcelasEdit(this.value)">
+            <option value="pix">⚡ PIX</option>
+            <option value="debito">💳 Débito</option>
+            <option value="credito">💳 Crédito</option>
+            <option value="dinheiro">💵 Dinheiro</option>
+            <option value="ted">🏦 TED/DOC</option>
+            <option value="outro">💰 Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="lbl">Descrição</label>
+          <input type="text" name="descricao" id="eDesc" placeholder="Detalhe opcional">
+        </div>
+        <div class="form-row form-row-2">
+          <div class="form-group" id="parcelas-edit">
+            <label class="lbl">Máx. parcelas</label>
+            <input type="number" name="parcelas_max" id="eParcelas" value="1" min="1" max="48">
           </div>
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+          <div class="form-group">
+            <label class="lbl">Desconto (%)</label>
+            <input type="text" name="desconto_pct" id="eDesconto" placeholder="Ex: 5">
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:.7rem;justify-content:flex-end;margin-top:1rem">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-sm">💾 Salvar alterações</button>
+      </div>
+    </form>
   </div>
 </div>
+
+<script>
+function toggleParcelasNovo(tipo) {
+    const p = document.getElementById('parcelas-novo');
+    p.style.display = tipo === 'credito' ? 'block' : 'none';
+    if (tipo !== 'credito') p.querySelector('input').value = 1;
+}
+function toggleParcelasEdit(tipo) {
+    const p = document.getElementById('parcelas-edit');
+    p.style.display = tipo === 'credito' ? 'block' : 'none';
+}
+function abrirEditar(id, nome, tipo, desc, parcelas, desconto) {
+    document.getElementById('fEdit').action = '/admin/pagamentos/' + id + '/editar';
+    document.getElementById('eNome').value    = nome;
+    document.getElementById('eTipo').value    = tipo;
+    document.getElementById('eDesc').value    = desc;
+    document.getElementById('eParcelas').value = parcelas;
+    document.getElementById('eDesconto').value = String(desconto).replace('.', ',');
+    toggleParcelasEdit(tipo);
+    document.getElementById('mEdit').classList.add('open');
+}
+function fecharModal() {
+    document.getElementById('mEdit').classList.remove('open');
+}
+document.getElementById('mEdit').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+});
+</script>
 {% endblock %}

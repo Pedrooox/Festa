@@ -91,5 +91,27 @@ textarea{resize:vertical;min-height:90px}
   {% if msgs %}<div class="flash-area">{% for cat,msg in msgs %}<div class="flash {{cat}}">{{ '✅' if cat=='sucesso' else '⚠️' }} {{msg}}</div>{% endfor %}</div>{% endif %}
 {% endwith %}
 <main><div class="container">{% block content %}{% endblock %}</div></main>
+
+<!-- Rodapé com contato da administradora -->
+<footer style="background:linear-gradient(135deg,#7209b7,#3a0ca3);padding:1.8rem 2rem;margin-top:auto">
+  <div style="max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+    <div style="display:flex;align-items:center;gap:1rem">
+      <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">👩</div>
+      <div>
+        <div style="font-weight:800;font-size:.92rem;color:#fff">Eliane Souza Cavalcante</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.7);margin-top:.15rem">Administradora · FestasVIP</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:2rem;flex-wrap:wrap">
+      <a href="https://wa.me/5544992091470" target="_blank"
+         style="display:flex;align-items:center;gap:.5rem;color:#fff;text-decoration:none;font-size:.88rem;font-weight:600;background:rgba(255,255,255,.12);padding:.5rem 1rem;border-radius:20px;border:1px solid rgba(255,255,255,.2);transition:background .18s"
+         onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+        📱 (44) 9920-9147
+      </a>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.45)">© FestasVIP</div>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>

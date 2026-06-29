@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+{% block title %}Reagendar — FestasVIP{% endblock %}
+{% block extra_style %}
+<style>
+.reag-wrap { max-width: 680px; margin: 0 auto; }
+
+/* Cabeçalho do agendamento atual */
+.ag-atual {
+    background: #fff;
+    border: 1.5px solid #e5e7f0;
+    border-radius: 14px;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.ag-emoji { font-size: 2.4rem; }
+.ag-info { flex: 1; }
+.ag-nome { font-weight: 800; font-size: 1.05rem; color: #1a1a2e; margin-bottom: .2rem; }
+.ag-meta { font-size: .83rem; color: #6b7280; }
+.ag-meta strong { color: #3a0ca3; }
+
+/* Prazo */
+.prazo-box {
+    border-radius: 11px; padding: .9rem 1.1rem;
+    display: flex; align-items: flex-start; gap: .75rem;
+    margin-bottom: 1.1rem; font-size: .87rem;
+}
+.prazo-box.ok    { background: #d1fae5; border: 1.5px solid #6ee7b7; color: #065f46; }
+.prazo-box.block { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+.prazo-box .pb-icon { font-size: 1.4rem; flex-shrink: 0; }
+.prazo-box strong { font-weight: 700; }
+
+/* Aviso de taxa — passo 4 do cenário */
+.aviso-taxa {
+    background: linear-gradient(135deg, #fef3c7, #fefce8);
+    border: 1.5px solid #fcd34d;
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1.2rem;
+}
+.aviso-taxa h3 {
+    font-size: .97rem; font-weight: 800; color: #92400e;
+    margin-bottom: .6rem;
+    display: flex; align-items: center; gap: .5rem;
+}
+.aviso-taxa p { font-size: .85rem; color: #a16207; line-height: 1.65; margin-bottom: .6rem; }
+.taxa-destaque {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: #fef08a; border: 1.5px solid #eab308;
+    border-radius: 8px; padding: .4rem .9rem;
+    font-weight: 800; color: #713f12; font-size: .92rem;
+}
+/* Confirmação do aviso — passo 5 */
+.aviso-check {
+    display: flex; align-items: flex-start; gap: .65rem;
+    cursor: pointer; margin-top: .9rem;
+    font-size: .85rem; color: #374151; line-height: 1.55;
+}
+.aviso-check input { width: 16px; height: 16px; margin-top: .15rem; accent-color: #7209b7; flex-shrink: 0; }
+
+/* Seletor de data — passo 6 e 7 */
+.datas-section {
+    background: #fff;
+    border: 1.5px solid #e5e7f0;
+    border-radius: 14px;
+    padding: 1.3rem;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.datas-section h3 { font-size: .95rem; font-weight: 700; color: #1a1a2e; margin-bottom: .8rem; }
+.datas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: .45rem;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: .2rem;
+}
+.data-radio { display: none; }
+.data-lbl {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .6rem .8rem;
+    border: 1.5px solid #e5e7f0;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: .82rem; font-weight: 500; color: #374151;
+    transition: all .15s;
+    background: #fdfcff;
+}
+.data-lbl:hover { border-color: #7209b7; background: #f5f0ff; color: #7209b7; }
+.data-radio:checked + .data-lbl {
+    border-color: #f72585;
+    background: linear-gradient(135deg, rgba(247,37,133,.07), rgba(114,9,183,.07));
+    color: #7209b7; font-weight: 700;
+    box-shadow: 0 0 0 2.5px rgba(247,37,133,.15);
+}
+
+/* Histórico de reagendamentos */
+.historico-card {
+    background: #f8fafc; border: 1px solid #e5e7f0;
+    border-radius: 11px; padding: .9rem 1.1rem;
+    margin-bottom: 1.1rem;
+}
+.historico-card h4 { font-size: .83rem; font-weight: 700; color: #6b7280; margin-bottom: .5rem; }
+.hist-item {
+    display: flex; justify-content: space-between;
+    font-size: .8rem; color: #374151; padding: .3rem 0;
+    border-bottom: 1px solid #e5e7f0;
+}
+.hist-item:last-child { border-bottom: none; }
+.hist-item .hi-taxa { color: #e11d48; font-weight: 600; }
+
+/* Botão de confirmação */
+.btn-reagendar {
+    width: 100%; padding: .95rem;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #fff; border: none; border-radius: 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: .97rem; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 0 4px 14px rgba(124,58,237,.3);
+    display: flex; align-items: center; justify-content: center; gap: .5rem;
+    margin-top: .8rem;
+}
+.btn-reagendar:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(124,58,237,.42); }
+.btn-reagendar:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reag-wrap">
+
+    <div class="mb-4 flex gap-2 items-center">
+        <a href="{{ url_for('cliente.meus_agendamentos') }}" class="btn btn-secondary btn-sm">← Agendamentos</a>
+        <span class="text-muted text-sm">Reagendar #{{ ag.id }}</span>
+    </div>
+
+    <h1 style="margin-bottom:.3rem">📅 Reagendar evento</h1>
+    <p class="subtitle">Altere a data do seu evento pagando uma taxa de reagendamento.</p>
+
+    <!-- Agendamento atual -->
+    <div class="ag-atual">
+        <span class="ag-emoji">{{ tema.emoji if tema else '🎉' }}</span>
+        <div class="ag-info">
+            <div class="ag-nome">{{ ag.tema_nome }}</div>
+            <div class="ag-meta">
+                📅 Data atual: <strong>{{ ag.data_evento | replace('-','/') }}</strong>
+                · 💰 R$ {{ "%.2f" | format(ag.valor_total) | replace(".",",") }}
+                · {{ ag.entrega_retirada }}
+            </div>
+        </div>
+        <span class="badge badge-{{ ag.status }}">{{ ag.status }}</span>
+    </div>
+
+    <!-- Prazo -->
+    <div class="prazo-box {{ 'ok' if prazo_ok else 'block' }}">
+        <span class="pb-icon">{{ '✅' if prazo_ok else '🚫' }}</span>
+        <div>
+            {% if prazo_ok %}
+                <strong>Reagendamento permitido</strong> — até {{ prazo_limite }}
+                (1 dia antes do evento).
+                {% if dias_restantes == 0 %}
+                Hoje é o último dia!
+                {% else %}
+                Restam <strong>{{ dias_restantes }} dia{{ 's' if dias_restantes != 1 }}</strong>.
+                {% endif %}
+            {% else %}
+                <strong>Prazo expirado.</strong>
+                O reagendamento devia ser feito até {{ prazo_limite }}
+                (1 dia antes do evento em {{ ag.data_evento | replace('-','/') }}).
+                Entre em contato com a administradora para auxílio.
+            {% endif %}
+        </div>
+    </div>
+
+    {% if prazo_ok and datas %}
+
+    <!-- Histórico (se já reagendou antes) -->
+    {% if historico %}
+    <div class="historico-card">
+        <h4>🔄 Histórico de reagendamentos deste evento</h4>
+        {% for h in historico %}
+        <div class="hist-item">
+            <span>{{ h.data_anterior | replace('-','/') }} → {{ h.nova_data | replace('-','/') }}</span>
+            <span>{{ h.reagendado_em[:10] | replace('-','/') }}</span>
+            <span class="hi-taxa">+R$ {{ "%.2f" | format(h.taxa) | replace(".",",") }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST" id="form-reag">
+        <input type="hidden" name="aviso_confirmado" id="aviso_confirmado_input" value="0">
+
+        <!-- Passo 4 e 5: Aviso de taxa + confirmação -->
+        <div class="aviso-taxa">
+            <h3>⚠️ Aviso: taxa de reagendamento</h3>
+            <p>
+                Ao reagendar seu evento, será cobrada uma taxa adicional que será
+                somada ao valor total do agendamento.
+            </p>
+            <p>
+                O pagamento do novo valor deverá ser realizado até
+                <strong>2 dias antes da nova data</strong> do evento.
+            </p>
+            <div class="taxa-destaque">
+                💰 Taxa: + R$ {{ "%.2f" | format(taxa) | replace(".",",") }}
+                &nbsp;·&nbsp;
+                Novo total: R$ {{ "%.2f" | format(ag.valor_total + taxa) | replace(".",",") }}
+            </div>
+
+            <!-- Passo 5: confirmação do aviso -->
+            <label class="aviso-check">
+                <input type="checkbox" id="confirma-aviso"
+                       onchange="document.getElementById('aviso_confirmado_input').value = this.checked ? '1' : '0'; validarForm()">
+                <span>
+                    Estou ciente da <strong>taxa de R$ {{ "%.2f" | format(taxa) | replace(".",",") }}</strong>
+                    e confirmo que desejo prosseguir com o reagendamento.
+                </span>
+            </label>
+        </div>
+
+        <!-- Passos 6 e 7: Seleção de nova data -->
+        <div class="datas-section">
+            <h3>📅 Escolha a nova data do evento</h3>
+            {% if datas %}
+            <div class="datas-grid">
+                {% for d in datas %}
+                <div>
+                    <input type="radio" name="nova_data" value="{{ d.data }}"
+                           id="d_{{ d.data }}" class="data-radio" required
+                           onchange="validarForm()">
+                    <label for="d_{{ d.data }}" class="data-lbl">
+                        📅 {{ d.data_br }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted" style="text-align:center;padding:1.5rem">
+                Nenhuma data disponível no momento.
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Botão de confirmação final -->
+        <button type="submit" class="btn-reagendar" id="btn-reag" disabled>
+            📅 Confirmar reagendamento · +R$ {{ "%.2f" | format(taxa) | replace(".",",") }}
+        </button>
+    </form>
+
+    {% elif prazo_ok and not datas %}
+    <div class="card" style="text-align:center;padding:2.5rem">
+        <p style="font-size:2rem;margin-bottom:.7rem">😔</p>
+        <p style="font-weight:700;color:#374151">Nenhuma data disponível</p>
+        <p class="text-muted text-sm" style="margin-top:.4rem">
+            Não há datas livres para reagendamento no momento.
+            Entre em contato com a administradora.
+        </p>
+    </div>
+    {% endif %}
+
+    <div style="margin-top:.8rem;text-align:center">
+        <a href="{{ url_for('cliente.meus_agendamentos') }}" class="btn btn-secondary btn-sm">
+            ← Voltar sem reagendar
+        </a>
+    </div>
+</div>
+
+<script>
+function validarForm() {
+    const avisoOk = document.getElementById('confirma-aviso').checked;
+    const dataOk  = document.querySelector('input[name="nova_data"]:checked') !== null;
+    document.getElementById('btn-reag').disabled = !(avisoOk && dataOk);
+}
+
+// Confirmação extra no submit
+document.getElementById('form-reag')?.addEventListener('submit', function(e) {
+    const dataSel = document.querySelector('input[name="nova_data"]:checked');
+    if (!dataSel) { e.preventDefault(); return; }
+    // Pega o texto da label da data selecionada
+    const lbl = document.querySelector(`label[for="d_${dataSel.value}"]`);
+    const dataTexto = lbl ? lbl.textContent.trim() : dataSel.value;
+    if (!confirm(`Confirmar reagendamento para ${dataTexto}?\n\nUma taxa de R$ {{ "%.2f" | format(taxa) | replace(".",",") }} será adicionada ao valor total.`)) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

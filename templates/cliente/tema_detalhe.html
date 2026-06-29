@@ -321,6 +321,27 @@
                 </div>
             </div>
 
+            <!-- Itens extras de outros temas -->
+            <div class="extras-section" style="border-top:1px solid #e5e7f0;padding-top:.9rem;margin-top:.8rem">
+                <button type="button" class="extras-toggle" onclick="toggleExtras2()">
+                    <span id="extras2-arrow">▸</span> ➕ Adicionar itens de outros temas
+                    <span style="background:#7209b7;color:#fff;font-size:.65rem;padding:.1rem .45rem;border-radius:10px;margin-left:.4rem">R$ 3,50/un · máx 5</span>
+                </button>
+                <div class="extras-body" id="extras2-body">
+                    <p style="font-size:.76rem;color:#6b7280;margin-bottom:.7rem;line-height:1.5">
+                        Selecione itens de outros temas para adicionar ao seu evento.
+                        Cada item custa <strong>R$ 3,50</strong> por unidade (máximo 5 por item).
+                    </p>
+                    <div id="extras-lista"></div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="adicionarLinha()" style="margin-top:.4rem">
+                        ➕ Adicionar item extra
+                    </button>
+                    <div id="extras-total" style="margin-top:.65rem;font-size:.85rem;font-weight:700;color:#7209b7;display:none">
+                        💰 Acréscimo dos extras: <span id="extras-valor">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Botão F: Alugar agora -->
             <button type="submit" class="btn-alugar" id="btn-alugar" {% if not datas %}disabled{% endif %}>
                 🎉 Alugar agora
@@ -352,6 +373,95 @@ function toggleExtras() {
     const show = !body.classList.contains('show');
     body.classList.toggle('show', show);
     arrow.textContent = show ? '▾' : '▸';
+}
+function toggleExtras2() {
+    const body  = document.getElementById('extras2-body');
+    const arrow = document.getElementById('extras2-arrow');
+    const show  = !body.classList.contains('show');
+    body.classList.toggle('show', show);
+    arrow.textContent = show ? '▾' : '▸';
+}
+
+// ── Itens extras ──
+const PRECO_UNIT = 3.50;
+const MAX_QTD    = 5;
+const TEMA_ATUAL_ID = {{ tema.id }};
+
+// Temas disponíveis (exceto o atual)
+const todosOsTemas = {{ temas_json | tojson }};
+
+function adicionarLinha() {
+    const lista = document.getElementById('extras-lista');
+    const idx   = lista.children.length;
+
+    const div = document.createElement('div');
+    div.className = 'extra-row';
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 80px 34px;gap:.4rem;align-items:center;margin-bottom:.45rem';
+
+    // Select de tema
+    const selTema = document.createElement('select');
+    selTema.name = 'extra_tema_id[]';
+    selTema.style.cssText = 'padding:.5rem .7rem;font-size:.82rem;border:1.5px solid #e5e7f0;border-radius:7px';
+    selTema.innerHTML = '<option value="">— Tema —</option>' +
+        todosOsTemas
+            .filter(t => t.id !== TEMA_ATUAL_ID && t.ativo)
+            .map(t => `<option value="${t.id}">${t.emoji} ${t.nome}</option>`)
+            .join('');
+    selTema.addEventListener('change', function() { carregarItens(this, selItem); });
+
+    // Select de item
+    const selItem = document.createElement('select');
+    selItem.name = 'extra_item_nome[]';
+    selItem.style.cssText = 'padding:.5rem .7rem;font-size:.82rem;border:1.5px solid #e5e7f0;border-radius:7px';
+    selItem.innerHTML = '<option value="">— Item —</option>';
+
+    // Quantidade
+    const inpQtd = document.createElement('input');
+    inpQtd.type  = 'number';
+    inpQtd.name  = 'extra_qtd[]';
+    inpQtd.value = 1;
+    inpQtd.min   = 1;
+    inpQtd.max   = MAX_QTD;
+    inpQtd.style.cssText = 'padding:.5rem .5rem;font-size:.82rem;border:1.5px solid #e5e7f0;border-radius:7px;text-align:center';
+    inpQtd.addEventListener('input', atualizarTotal);
+
+    // Botão remover
+    const btnRm = document.createElement('button');
+    btnRm.type = 'button';
+    btnRm.innerHTML = '✕';
+    btnRm.style.cssText = 'width:32px;height:32px;border-radius:6px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center';
+    btnRm.onclick = function() { div.remove(); atualizarTotal(); };
+
+    div.append(selTema, selItem, inpQtd, btnRm);
+    lista.appendChild(div);
+}
+
+async function carregarItens(selTema, selItem) {
+    selItem.innerHTML = '<option value="">Carregando...</option>';
+    const tid = selTema.value;
+    if (!tid) { selItem.innerHTML = '<option value="">— Item —</option>'; return; }
+    try {
+        const res  = await fetch(`/api/tema/${tid}/itens`);
+        const itens = await res.json();
+        selItem.innerHTML = '<option value="">— Item —</option>' +
+            itens.map(it => `<option value="${it.nome}">${it.nome} (${it.quantidade} un.)</option>`).join('');
+    } catch(e) {
+        selItem.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+    atualizarTotal();
+}
+
+function atualizarTotal() {
+    const qtds  = [...document.querySelectorAll('input[name="extra_qtd[]"]')];
+    const total = qtds.reduce((s, el) => s + (parseInt(el.value) || 0) * PRECO_UNIT, 0);
+    const divTotal = document.getElementById('extras-total');
+    const spanVal  = document.getElementById('extras-valor');
+    if (total > 0) {
+        divTotal.style.display = 'block';
+        spanVal.textContent    = 'R$ ' + total.toFixed(2).replace('.', ',');
+    } else {
+        divTotal.style.display = 'none';
+    }
 }
 </script>
 {% endblock %}

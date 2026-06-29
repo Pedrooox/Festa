@@ -49,7 +49,7 @@
 .itens-lista { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .8rem; }
 .item-row {
     display: grid;
-    grid-template-columns: 1fr 100px 38px;
+    grid-template-columns: 1fr 80px 1fr 38px;
     gap: .5rem;
     align-items: center;
 }
@@ -223,6 +223,9 @@
             Gerencie todos os itens que compõem este tema. Informe nome e quantidade de cada um.
             Ao salvar, a lista atual será completamente substituída.
         </p>
+        <div class="form-row form-row-3" style="margin-bottom:.4rem;font-size:.75rem;font-weight:700;color:var(--mu);padding:0 .2rem">
+            <span>Nome do item</span><span>Qtd</span><span>Descrição (opcional)</span>
+        </div>
         <form method="POST" action="{{ url_for('admin.tema_itens_salvar', tid=tema.id) }}">
             <div class="itens-lista" id="itens-lista">
                 {% if itens %}
@@ -230,6 +233,7 @@
                 <div class="item-row">
                     <input type="text" name="item_nome[]" value="{{ it.nome }}" placeholder="Nome do item" required>
                     <input type="number" name="item_qtd[]" value="{{ it.quantidade }}" min="1" placeholder="Qtd">
+                    <input type="text" name="item_desc[]" value="{{ it.descricao or '' }}" placeholder="Descrição (opcional)">
                     <button type="button" class="btn-rm" onclick="removerItem(this)" title="Remover">✕</button>
                 </div>
                 {% endfor %}
@@ -237,6 +241,7 @@
                 <div class="item-row">
                     <input type="text" name="item_nome[]" placeholder="Nome do item (ex: Mesa decorada)">
                     <input type="number" name="item_qtd[]" value="1" min="1" placeholder="Qtd">
+                    <input type="text" name="item_desc[]" placeholder="Descrição (opcional)">
                     <button type="button" class="btn-rm" onclick="removerItem(this)">✕</button>
                 </div>
                 {% endif %}
@@ -345,6 +350,7 @@ function adicionarItem() {
     row.className = 'item-row';
     row.innerHTML = '<input type="text" name="item_nome[]" placeholder="Nome do item">' +
                     '<input type="number" name="item_qtd[]" value="1" min="1" placeholder="Qtd">' +
+                    '<input type="text" name="item_desc[]" placeholder="Descrição (opcional)">' +
                     '<button type="button" class="btn-rm" onclick="removerItem(this)">✕</button>';
     lista.appendChild(row);
     row.querySelector('input').focus();

@@ -27,7 +27,7 @@
 .itens-lista { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .7rem; }
 .item-row {
     display: grid;
-    grid-template-columns: 1fr 90px 36px;
+    grid-template-columns: 1fr 75px 1fr 36px;
     gap: .5rem;
     align-items: center;
 }
@@ -103,6 +103,7 @@
             <div class="item-row">
                 <input type="text" name="item_nome[]" placeholder="Nome do item" value="{{ it.nome }}" required>
                 <input type="number" name="item_qtd[]" placeholder="Qtd" value="{{ it.quantidade }}" min="1" required>
+                <input type="text" name="item_desc[]" placeholder="Descrição (opcional)" value="{{ it.descricao or '' }}">
                 <button type="button" class="btn-remove-item" onclick="removerItem(this)">✕</button>
             </div>
             {% endfor %}
@@ -110,6 +111,7 @@
             <div class="item-row">
                 <input type="text" name="item_nome[]" placeholder="Nome do item (ex: Mesa decorada)">
                 <input type="number" name="item_qtd[]" placeholder="Qtd" value="1" min="1">
+                <input type="text" name="item_desc[]" placeholder="Descrição (opcional)">
                 <button type="button" class="btn-remove-item" onclick="removerItem(this)">✕</button>
             </div>
             {% endif %}
@@ -163,6 +165,7 @@ function adicionarItem() {
     row.className = 'item-row';
     row.innerHTML = '<input type="text" name="item_nome[]" placeholder="Nome do item">' +
                     '<input type="number" name="item_qtd[]" placeholder="Qtd" value="1" min="1">' +
+                    '<input type="text" name="item_desc[]" placeholder="Descrição (opcional)">' +
                     '<button type="button" class="btn-remove-item" onclick="removerItem(this)">✕</button>';
     lista.appendChild(row);
     row.querySelector('input').focus();

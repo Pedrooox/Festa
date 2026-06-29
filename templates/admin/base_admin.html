@@ -95,7 +95,8 @@ textarea{resize:vertical;min-height:75px}
     <div class="sb-sec">Visão geral</div>
     <a href="{{ url_for('admin.dashboard') }}" class="sb-link {{ 'active' if request.endpoint=='admin.dashboard' }}"><span class="ic">📊</span><span>Dashboard</span></a>
     <div class="sb-sec">Eventos</div>
-    <a href="{{ url_for('admin.agendamentos') }}" class="sb-link {{ 'active' if 'agendamento' in request.endpoint }}"><span class="ic">📅</span><span>Agendamentos</span></a>
+    <a href="{{ url_for('admin.agendamentos') }}" class="sb-link {{ 'active' if 'agendamento' in request.endpoint and 'reembolso' not in request.endpoint }}"><span class="ic">📅</span><span>Agendamentos</span></a>
+    <a href="{{ url_for('admin.reembolsos') }}" class="sb-link {{ 'active' if 'reembolso' in request.endpoint }}"><span class="ic">💸</span><span>Reembolsos</span></a>
     <a href="{{ url_for('admin.disponibilidades') }}" class="sb-link {{ 'active' if 'disponibilidade' in request.endpoint }}"><span class="ic">🗓️</span><span>Disponibilidades</span></a>
     <div class="sb-sec">Configurações</div>
     <a href="{{ url_for('admin.temas') }}" class="sb-link {{ 'active' if 'tema' in request.endpoint }}"><span class="ic">🎨</span><span>Temas</span></a>
